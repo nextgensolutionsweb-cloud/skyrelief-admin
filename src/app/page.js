@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, UserPlus, UserCircle2, Shield, Megaphone, TrendingUp, TrendingDown } from 'lucide-react';
 import { apiRequest, formatCurrency } from '@/lib/api';
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LabelList
+} from 'recharts';
 
 const quickActions = [
   { label: 'Add Member', icon: UserPlus,    bg: 'linear-gradient(135deg,#38bdf8,#0ea5e9)', shadow: 'rgba(14,165,233,0.35)', href: '/members' },
@@ -34,15 +38,30 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [planStats, setPlanStats] = useState([]);
   const [recent, setRecent] = useState({ members: [], agents: [], marriages: [] });
+  
+  // New Analytics States
+  const [memberTrends, setMemberTrends] = useState([]);
+  const [trendTimeframe, setTrendTimeframe] = useState('monthly');
+  const [trendPlanId, setTrendPlanId] = useState('');
+  
+  const [dynamicAgeStats, setDynamicAgeStats] = useState([]);
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+  
+  const [financialTrends, setFinancialTrends] = useState([]);
+  const [financialTimeframe, setFinancialTimeframe] = useState('monthly');
+  const [financialAgentId, setFinancialAgentId] = useState('');
+  const [allAgents, setAllAgents] = useState([]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const [summaryRes, planStatsRes, recentRes] = await Promise.all([
+        const [summaryRes, planStatsRes, recentRes, agentsRes] = await Promise.all([
           apiRequest('/api/dashboard/summary').catch(() => ({ s: 0, r: null })),
           apiRequest('/api/dashboard/plan-stats').catch(() => ({ s: 0, r: [] })),
-          apiRequest('/api/dashboard/recent-activity').catch(() => ({ s: 0, r: null }))
+          apiRequest('/api/dashboard/recent-activity').catch(() => ({ s: 0, r: null })),
+          apiRequest('/api/agent/get-all').catch(() => ({ s: 0, r: [] }))
         ]);
         
         if (summaryRes.s === 1 && summaryRes.r) {
@@ -50,6 +69,11 @@ export default function Dashboard() {
         }
         if (planStatsRes.s === 1 && Array.isArray(planStatsRes.r)) {
           setPlanStats(planStatsRes.r);
+          // Set first plan as default for dynamic age stats if available
+          if (planStatsRes.r.length > 0) {
+            if (!selectedPlanId) setSelectedPlanId(planStatsRes.r[0].plan_id);
+            if (!trendPlanId) setTrendPlanId(planStatsRes.r[0].plan_id);
+          }
         }
         if (recentRes.s === 1 && recentRes.r) {
           setRecent({
@@ -57,6 +81,9 @@ export default function Dashboard() {
             agents: recentRes.r.recent_agents || [],
             marriages: recentRes.r.recent_marriages || []
           });
+        }
+        if (agentsRes.s === 1 && Array.isArray(agentsRes.r)) {
+          setAllAgents(agentsRes.r);
         }
       } catch (e) {
         console.error('Failed to load dashboard data:', e);
@@ -66,6 +93,53 @@ export default function Dashboard() {
     }
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    async function fetchFinancialTrends() {
+      try {
+        let url = `/api/dashboard/financial-trends?timeframe=${financialTimeframe}`;
+        if (financialAgentId) url += `&agent_id=${financialAgentId}`;
+        
+        const res = await apiRequest(url);
+        if (res.s === 1 && Array.isArray(res.r)) {
+          setFinancialTrends(res.r);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchFinancialTrends();
+  }, [financialTimeframe, financialAgentId]);
+
+  useEffect(() => {
+    async function fetchMemberTrends() {
+      if (!trendPlanId) return;
+      try {
+        const res = await apiRequest(`/api/dashboard/member-trends?timeframe=${trendTimeframe}&plan_id=${trendPlanId}`);
+        if (res.s === 1 && Array.isArray(res.r)) {
+          setMemberTrends(res.r);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchMemberTrends();
+  }, [trendTimeframe, trendPlanId]);
+
+  useEffect(() => {
+    async function fetchAgeStats() {
+      if (!selectedPlanId) return;
+      try {
+        const res = await apiRequest(`/api/dashboard/dynamic-age-stats?plan_id=${selectedPlanId}`);
+        if (res.s === 1 && Array.isArray(res.r)) {
+          setDynamicAgeStats(res.r);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchAgeStats();
+  }, [selectedPlanId]);
 
   const getInitials = (firstName, lastName) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'AG';
@@ -144,6 +218,206 @@ export default function Dashboard() {
             <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#334155' }}>{label}</span>
           </button>
         ))}
+      </div>
+
+      {/* ── Analytics Graphs ──────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+        
+        {/* 1. Member Onboarding Trends */}
+        <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Member Onboarding Trends</h2>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <select 
+                value={trendPlanId} 
+                onChange={e => setTrendPlanId(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc'
+                }}
+              >
+                {planStats.map(p => (
+                  <option key={`trend-${p.plan_id}`} value={p.plan_id}>{p.plan_name}</option>
+                ))}
+              </select>
+              <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
+                {['weekly', 'monthly', 'yearly'].map(tf => (
+                  <button 
+                    key={tf}
+                    onClick={() => setTrendTimeframe(tf)}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      background: trendTimeframe === tf ? '#fff' : 'transparent',
+                      color: trendTimeframe === tf ? '#0ea5e9' : '#64748b',
+                      boxShadow: trendTimeframe === tf ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                      textTransform: 'capitalize',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {tf}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={memberTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
+                  labelStyle={{ fontWeight: '700', color: '#0f172a' }}
+                  formatter={(value) => [`${value} Members`, 'Joined']}
+                />
+                <Bar dataKey="members_joined" name="Members Joined" fill="#0ea5e9" radius={[6, 6, 0, 0]} maxBarSize={40}>
+                  <LabelList dataKey="members_joined" position="top" style={{ fontSize: '11px', fill: '#334155', fontWeight: 'bold' }} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* 2. Dynamic Age-Based Analysis */}
+        <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Plan Age Rules Analysis</h2>
+            <select 
+              value={selectedPlanId} 
+              onChange={e => setSelectedPlanId(e.target.value)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                outline: 'none',
+                background: '#f8fafc'
+              }}
+            >
+              {planStats.map(p => (
+                <option key={p.plan_id} value={p.plan_id}>{p.plan_name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ width: '100%', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {dynamicAgeStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dynamicAgeStats}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="count"
+                    labelLine={{ stroke: '#64748b', strokeWidth: 1 }}
+                    label={({ name, value }) => value > 0 ? `${name} (${value})` : ''}
+                    style={{ fontSize: '11px', fontWeight: 'bold' }}
+                  >
+                    {dynamicAgeStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={avatarColors[index % avatarColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '0.8rem', fontWeight: '600' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontWeight: '500' }}>No age rules available for this plan</div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* 3. Financial Collections Trend */}
+      <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Financial Collections Trend</h2>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <select 
+              value={financialAgentId} 
+              onChange={e => setFinancialAgentId(e.target.value)}
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                outline: 'none',
+                background: '#f8fafc'
+              }}
+            >
+              <option value="">All Agents</option>
+              {allAgents.map(a => (
+                <option key={`fin-agent-${a.id}`} value={a.id}>{a.first_name} {a.last_name}</option>
+              ))}
+            </select>
+            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
+              {['weekly', 'monthly', 'yearly'].map(tf => (
+                <button 
+                  key={tf}
+                  onClick={() => setFinancialTimeframe(tf)}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    background: financialTimeframe === tf ? '#fff' : 'transparent',
+                    color: financialTimeframe === tf ? '#10b981' : '#64748b',
+                    boxShadow: financialTimeframe === tf ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    textTransform: 'capitalize',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ width: '100%', height: '350px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={financialTrends} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `₹${(val/1000).toFixed(0)}k`} />
+              <Tooltip 
+                cursor={{ fill: '#f8fafc' }}
+                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
+                formatter={(value) => [`₹${Number(value).toLocaleString()}`, undefined]}
+              />
+              <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '0.8rem', fontWeight: '600', paddingBottom: '20px' }} />
+              <Bar dataKey="total_collected" name="Total Collected (Joining + Slips)" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                <LabelList dataKey="total_collected" position="top" formatter={(val) => val > 0 ? `₹${(val/1000).toFixed(0)}k` : ''} style={{ fontSize: '11px', fill: '#10b981', fontWeight: 'bold' }} />
+              </Bar>
+              <Bar dataKey="pending_joining_expected" name="Pending Expected (Joining)" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                <LabelList dataKey="pending_joining_expected" position="top" formatter={(val) => val > 0 ? `₹${(val/1000).toFixed(0)}k` : ''} style={{ fontSize: '11px', fill: '#f59e0b', fontWeight: 'bold' }} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* ── Plan Wise Overview ──────────────────────────────── */}

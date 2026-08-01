@@ -339,7 +339,7 @@ export default function InsuranceDetailsPage({ params: paramsPromise }) {
               onClick={() => {
                 const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey');
                 const token = localStorage.getItem('sky_token') || localStorage.getItem('token');
-                window.open(`${BASE_API_URL}/api/member/download-blank-bond?plan_id=${insuranceId}&apikey=${apikey}&token=${token}`, '_blank');
+                window.open(`${BASE_API_URL}/api/member/download-blank-bond?plan_id=${insuranceId}&apikey=${apikey}&token=${token}&admin=true`, '_blank');
               }} 
               style={{ padding: '8px 16px', fontSize: '0.8rem', background: '#e0e7ff', color: '#4338ca', border: 'none' }}
             >

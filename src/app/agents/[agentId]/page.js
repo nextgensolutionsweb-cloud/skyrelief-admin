@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, EyeOff, Copy, Key } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -70,6 +70,9 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [payouts, setPayouts] = useState([]);
   const [payoutsMeta, setPayoutsMeta] = useState(null);
   const [payoutsPage, setPayoutsPage] = useState(1);
+  const [deposits, setDeposits] = useState([]);
+  const [depositsPage, setDepositsPage] = useState(1);
+  const [deductCommission, setDeductCommission] = useState(true);
   const [loadingWallet, setLoadingWallet] = useState(false);
 
   // New Wallet Tabs & Pending Collections State
@@ -90,9 +93,19 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [payoutNotes, setPayoutNotes] = useState('');
   const [submittingPayout, setSubmittingPayout] = useState(false);
 
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositNotes, setDepositNotes] = useState('');
+  const [depositPaymentMode, setDepositPaymentMode] = useState('Cash');
+  const [submittingDeposit, setSubmittingDeposit] = useState(false);
+
   const [showEditPayoutModal, setShowEditPayoutModal] = useState(false);
   const [editPayoutForm, setEditPayoutForm] = useState({ payout_id: '', amount_paid: '', reference_note: '', payment_mode: '' });
   const [editingPayout, setEditingPayout] = useState(false);
+
+  const [showEditDepositModal, setShowEditDepositModal] = useState(false);
+  const [editDepositForm, setEditDepositForm] = useState({ deposit_id: '', amount: '', reference_note: '', payment_mode: '' });
+  const [editingDeposit, setEditingDeposit] = useState(false);
 
   const openEditPayoutModal = (p) => {
     setEditPayoutForm({
@@ -127,6 +140,81 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       setEditingPayout(false);
     }
   };
+
+  const handleDeletePayout = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this payout?')) return;
+    try {
+      const res = await apiRequest('/api/agent/delete-payout', {
+        method: 'POST',
+        body: JSON.stringify({ payout_id: id })
+      });
+      if (res.s === 1) {
+        showToast('Payout deleted successfully', 'success');
+        fetchPayouts();
+        fetchWalletSummary();
+      } else {
+        showToast(res.m || 'Failed to delete payout', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting payout', 'error');
+    }
+  };
+
+  const openEditDepositModal = (d) => {
+    setEditDepositForm({
+      deposit_id: d.id,
+      amount: d.amount,
+      reference_note: d.reference_note || '',
+      payment_mode: d.payment_mode || 'Cash'
+    });
+    setShowEditDepositModal(true);
+  };
+
+  const handleEditDepositSubmit = async (e) => {
+    e.preventDefault();
+    setEditingDeposit(true);
+    try {
+      const res = await apiRequest('/api/agent/update-deposit', {
+        method: 'POST',
+        body: JSON.stringify(editDepositForm)
+      });
+      if (res.s === 1) {
+        showToast('Deposit updated successfully', 'success');
+        setShowEditDepositModal(false);
+        fetchDeposits();
+        fetchWalletSummary();
+      } else {
+        showToast(res.m || 'Failed to update deposit', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error updating deposit', 'error');
+    } finally {
+      setEditingDeposit(false);
+    }
+  };
+
+  const handleDeleteDeposit = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this deposit?')) return;
+    try {
+      const res = await apiRequest('/api/agent/delete-deposit', {
+        method: 'POST',
+        body: JSON.stringify({ deposit_id: id })
+      });
+      if (res.s === 1) {
+        showToast('Deposit deleted successfully', 'success');
+        fetchDeposits();
+        fetchWalletSummary();
+      } else {
+        showToast(res.m || 'Failed to delete deposit', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting deposit', 'error');
+    }
+  };
+
   const getBadge = (item) => {
     if (item.marriage_status === 2 || item.insurance_status === 2) {
       return { bg: '#dbeafe', color: '#1e3a8a', label: 'Married' };
@@ -239,6 +327,17 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       console.error(e);
     } finally {
       setLoadingWallet(false);
+    }
+  };
+
+  const fetchDeposits = async () => {
+    try {
+      const res = await apiRequest(`/api/agent/deposits?agent_id=${agentId}`);
+      if (res.s === 1 && res.r) {
+        setDeposits(res.r);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -359,6 +458,41 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     }
   };
 
+  const handleAddDeposit = async (e) => {
+    e.preventDefault();
+    if (!depositAmount || Number(depositAmount) <= 0) return showToast('Enter valid amount', 'error');
+    
+    setSubmittingDeposit(true);
+    try {
+      const res = await apiRequest('/api/agent/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          agent_id: agentId, 
+          amount: depositAmount, 
+          reference_note: depositNotes,
+          payment_mode: depositPaymentMode 
+        })
+      });
+      if (res.s === 1) {
+        showToast('Deposit recorded successfully', 'success');
+        setIsDepositModalOpen(false);
+        setDepositAmount('');
+        setDepositNotes('');
+        setDepositPaymentMode('Cash');
+        fetchWalletSummary();
+        fetchDeposits();
+      } else {
+        showToast(res.m || 'Failed to record deposit', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error recording deposit', 'error');
+    } finally {
+      setSubmittingDeposit(false);
+    }
+  };
+
   const getMemberName = (item) => {
     const details = item.member_details || {};
     const fName = details.first_name || item.first_name || '';
@@ -451,6 +585,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   }, [agentId, membersPage, activeTab, agent, activeSection, selectedPlan]);
 
   useEffect(() => {
+    if (activeSection === 'Wallet') {
+      fetchPayouts();
+      fetchDeposits();
+      fetchPendingCollections();
+    }
   }, [agentId, payoutsPage, agent, activeSection]);
 
   if (loading) {
@@ -1067,96 +1206,224 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
 
         {walletTab === 'Overview' && (
         <>
-          {/* Wallet Summary */}
-          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'linear-gradient(to right, #f8fafc, #fff)' }}>
+          {/* Member Collections Summary */}
+          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'linear-gradient(to right, #f8fafc, #fff)', marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Collections & Commissions Overview</h2>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Member Collections Breakdown</h2>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                <div style={{ padding: '16px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase', marginBottom: '8px' }}>Total Amount Collected</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#15803d' }}>
+                    ₹{(Number(walletSummary?.total_joining_collected || 0) + Number(walletSummary?.total_installment_collected || 0)).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '4px', fontWeight: '500' }}>
+                    (Joining: ₹{Number(walletSummary?.total_joining_collected || 0).toFixed(2)} + Slips: ₹{Number(walletSummary?.total_installment_collected || 0).toFixed(2)})
+                  </div>
+                </div>
+                
+                <div style={{ padding: '16px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#92400e', textTransform: 'uppercase', marginBottom: '8px' }}>Total Amount Pending</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#b45309' }}>
+                    ₹{(Number(walletSummary?.pending_joining_fees || 0) + Number(walletSummary?.pending_installment_fees || 0)).toFixed(2)}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '4px', fontWeight: '500' }}>
+                    (Joining: ₹{Number(walletSummary?.pending_joining_fees || 0).toFixed(2)} + Slips: ₹{Number(walletSummary?.pending_installment_fees || 0).toFixed(2)})
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Settlements Summary */}
+          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'linear-gradient(to right, #f0fdf4, #fff)', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Agent Settlements Overview</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  className="btn-primary" 
+                  style={{ padding: '8px 16px', fontSize: '0.85rem', background: '#10b981', borderColor: '#10b981' }}
+                  onClick={() => setIsDepositModalOpen(true)}
+                >
+                  + Receive Payment
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+              <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Submitted to Admin</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#3b82f6' }}>₹{Number(walletSummary?.total_deposited || 0).toFixed(2)}</div>
+              </div>
+              
+              <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '2px solid #ef4444', boxShadow: '0 4px 6px -1px rgba(239,68,68,0.1)', position: 'relative' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b91c1c', textTransform: 'uppercase' }}>Balance Due to Admin</div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.7rem', color: '#475569', fontWeight: '600' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={deductCommission} 
+                      onChange={(e) => setDeductCommission(e.target.checked)} 
+                      style={{ cursor: 'pointer', accentColor: '#10b981' }} 
+                    />
+                    Deduct Commission
+                  </label>
+                </div>
+                
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ef4444' }}>
+                  ₹{(() => {
+                    const totalCollected = Number(walletSummary?.total_joining_collected || 0) + Number(walletSummary?.total_installment_collected || 0);
+                    const totalSubmitted = Number(walletSummary?.total_deposited || 0);
+                    const commissionEarned = Number(walletSummary?.total_earned || 0);
+                    const balance = deductCommission ? (totalCollected - totalSubmitted - commissionEarned) : (totalCollected - totalSubmitted);
+                    return balance.toFixed(2);
+                  })()}
+                </div>
+                
+                <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '6px', fontWeight: '500', fontStyle: 'italic' }}>
+                  {deductCommission ? 'Calculation: (Total Collected) - (Submitted) - (Commission Earned)' : 'Calculation: (Total Collected) - (Submitted)'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Commission Overview */}
+          <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', background: 'linear-gradient(to right, #f8fafc, #fff)', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Commission Overview</h2>
               <button 
-                className="btn-primary" 
+                className="btn-secondary" 
                 style={{ padding: '8px 16px', fontSize: '0.85rem' }}
                 onClick={() => setIsPayoutModalOpen(true)}
               >
-                + Record Payout
+                + Pay Commission
               </button>
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
-              <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Total Joining Collected</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a' }}>₹{Number(walletSummary?.total_joining_collected || 0).toFixed(2)}</div>
-                <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: '600', marginTop: '4px' }}>Pending: ₹{Number(walletSummary?.pending_joining_fees || 0).toFixed(2)}</div>
-              </div>
-              <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Total Slips Collected</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a' }}>₹{Number(walletSummary?.total_installment_collected || 0).toFixed(2)}</div>
-                <div style={{ fontSize: '0.75rem', color: '#b45309', fontWeight: '600', marginTop: '4px' }}>Pending: ₹{Number(walletSummary?.pending_installment_fees || 0).toFixed(2)}</div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
               <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Commission Earned</div>
                 <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#10b981' }}>₹{Number(walletSummary?.total_earned || 0).toFixed(2)}</div>
               </div>
               <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Total Paid Out</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#3b82f6' }}>₹{Number(walletSummary?.total_paid || 0).toFixed(2)}</div>
-              </div>
-              <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', border: '2px solid #f59e0b', boxShadow: '0 4px 6px -1px rgba(245,158,11,0.1)' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#d97706', textTransform: 'uppercase', marginBottom: '8px' }}>Pending Balance</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#f59e0b' }}>₹{Number(walletSummary?.pending_balance || 0).toFixed(2)}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Commission Paid</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#8b5cf6' }}>₹{Number(walletSummary?.total_paid || 0).toFixed(2)}</div>
               </div>
             </div>
           </div>
 
-          {/* Payouts Table */}
-          <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Payouts History</h2>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    {['DATE', 'AMOUNT (₹)', 'NOTES', 'PROCESSED BY', 'ACTIONS'].map(h => (
-                      <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {payouts.length === 0 ? (
-                    <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No payouts recorded yet.</td></tr>
-                  ) : (
-                    payouts.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>{new Date(p.created_at).toLocaleDateString()}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#3b82f6', fontWeight: '800' }}>- {Number(p.amount_paid).toFixed(2)}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{p.reference_note || '—'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>{p.processed_by_name || 'Admin'}</td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <button
-                            onClick={() => openEditPayoutModal(p)}
-                            title="Edit Payout"
-                            style={{ padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0ea5e9', borderColor: '#bae6fd', background: '#f0f9ff' }}
-                          >
-                            <Pencil size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {/* Payouts Pagination */}
-            {payoutsMeta && payoutsMeta.total > 0 && (
-              <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>
-                  Showing <span style={{ fontWeight: '700' }}>{payoutsMeta.skip + 1}</span> to <span style={{ fontWeight: '700' }}>{Math.min(payoutsMeta.skip + payoutsMeta.limit, payoutsMeta.total)}</span> of <span style={{ fontWeight: '700' }}>{payoutsMeta.total}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button disabled={!payoutsMeta.hasPrev} onClick={() => setPayoutsPage(p => p - 1)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>Prev</button>
-                  <button disabled={!payoutsMeta.hasNext} onClick={() => setPayoutsPage(p => p + 1)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>Next</button>
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
+            {/* Deposits Table */}
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f0fdf4' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#166534', margin: 0 }}>Deposits History (Receipts)</h2>
               </div>
-            )}
+              <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f8fafc' }}>
+                    <tr>
+                      {['DATE', 'AMOUNT (₹)', 'MODE', 'NOTES', 'ACTIONS'].map(h => (
+                        <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deposits.length === 0 ? (
+                      <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No deposits recorded yet.</td></tr>
+                    ) : (
+                      deposits.map(d => (
+                        <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>{new Date(d.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#10b981', fontWeight: '800' }}>+ {Number(d.amount).toFixed(2)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{d.payment_mode || 'Cash'}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{d.reference_note || '—'}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => openEditDepositModal(d)}
+                                title="Edit Deposit"
+                                style={{ padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0ea5e9', borderColor: '#bae6fd', background: '#f0f9ff', border: '1px solid #bae6fd' }}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDeposit(d.id)}
+                                title="Delete Deposit"
+                                style={{ padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', borderColor: '#fca5a5', background: '#fef2f2', border: '1px solid #fca5a5' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payouts Table */}
+            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Commission Payouts History</h2>
+              </div>
+              <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f1f5f9' }}>
+                    <tr>
+                      {['DATE', 'AMOUNT (₹)', 'NOTES', 'ACTIONS'].map(h => (
+                        <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payouts.length === 0 ? (
+                      <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No payouts recorded yet.</td></tr>
+                    ) : (
+                      payouts.map(p => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#3b82f6', fontWeight: '800' }}>- {Number(p.amount_paid).toFixed(2)}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{p.reference_note || '—'}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => openEditPayoutModal(p)}
+                                title="Edit Payout"
+                                style={{ padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0ea5e9', borderColor: '#bae6fd', background: '#f0f9ff', border: '1px solid #bae6fd' }}
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeletePayout(p.id)}
+                                title="Delete Payout"
+                                style={{ padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', borderColor: '#fca5a5', background: '#fef2f2', border: '1px solid #fca5a5' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {/* Payouts Pagination */}
+              {payoutsMeta && payoutsMeta.total > 0 && (
+                <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>
+                    Showing <span style={{ fontWeight: '700' }}>{payoutsMeta.skip + 1}</span> to <span style={{ fontWeight: '700' }}>{Math.min(payoutsMeta.skip + payoutsMeta.limit, payoutsMeta.total)}</span> of <span style={{ fontWeight: '700' }}>{payoutsMeta.total}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button disabled={!payoutsMeta.hasPrev} onClick={() => setPayoutsPage(p => p - 1)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>Prev</button>
+                    <button disabled={!payoutsMeta.hasNext} onClick={() => setPayoutsPage(p => p + 1)} className="btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>Next</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </>
         )}
@@ -1380,6 +1647,66 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         </div>
       )}
 
+      {/* Deposit Modal */}
+      {isDepositModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="premium-card" style={{ maxWidth: '400px', width: '100%', padding: '24px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', margin: 0 }}>Receive Payment from Agent</h3>
+            
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>Balance Due to Admin</label>
+              <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#ef4444' }}>₹{Number(walletSummary?.balance_due_to_admin || 0).toFixed(2)}</div>
+            </div>
+
+            <form onSubmit={handleAddDeposit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Amount Received (₹) *</label>
+                <input 
+                  type="number" 
+                  required 
+                  min="0.01"
+                  step="0.01"
+                  value={depositAmount} 
+                  onChange={e => setDepositAmount(e.target.value)} 
+                  className="premium-input" 
+                  placeholder="Enter amount" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Payment Mode</label>
+                <select 
+                  value={depositPaymentMode} 
+                  onChange={e => setDepositPaymentMode(e.target.value)} 
+                  className="premium-input" 
+                  style={{ width: '100%' }}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Notes (Optional)</label>
+                <input 
+                  type="text" 
+                  value={depositNotes} 
+                  onChange={e => setDepositNotes(e.target.value)} 
+                  className="premium-input" 
+                  placeholder="e.g. Received by..." 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button type="button" onClick={() => setIsDepositModalOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>Cancel</button>
+                <button type="submit" disabled={submittingDeposit} className="btn-primary" style={{ flex: 1, padding: '10px', background: '#10b981', borderColor: '#10b981' }}>{submittingDeposit ? 'Saving...' : 'Record Payment'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Payout Modal */}
       {isPayoutModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
@@ -1492,6 +1819,58 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         </div>
       )}
 
+      {/* Edit Deposit Modal */}
+      {showEditDepositModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="premium-card" style={{ maxWidth: '400px', width: '100%', padding: '24px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', margin: 0 }}>Edit Agent Deposit</h3>
+
+            <form onSubmit={handleEditDepositSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Deposit Amount (₹) *</label>
+                <input 
+                  type="number" 
+                  required 
+                  min="0.01"
+                  step="0.01"
+                  value={editDepositForm.amount} 
+                  onChange={e => setEditDepositForm({ ...editDepositForm, amount: e.target.value })} 
+                  className="premium-input" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Payment Mode</label>
+                <select 
+                  value={editDepositForm.payment_mode} 
+                  onChange={e => setEditDepositForm({ ...editDepositForm, payment_mode: e.target.value })} 
+                  className="premium-input" 
+                  style={{ width: '100%' }}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Notes (Optional)</label>
+                <input 
+                  type="text" 
+                  value={editDepositForm.reference_note} 
+                  onChange={e => setEditDepositForm({ ...editDepositForm, reference_note: e.target.value })} 
+                  className="premium-input" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button type="button" onClick={() => setShowEditDepositModal(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>Cancel</button>
+                <button type="submit" disabled={editingDeposit} className="btn-primary" style={{ flex: 1, padding: '10px' }}>{editingDeposit ? 'Saving...' : 'Update Deposit'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

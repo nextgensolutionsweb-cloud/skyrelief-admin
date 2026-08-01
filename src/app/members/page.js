@@ -387,12 +387,12 @@ export default function MembersListPage() {
         {/* Filters and search panel */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <input
-              type="text"
+            <input 
+              type="text" 
               value={searchInput}
               onChange={handleSearchChange}
-              placeholder="Search by name, ID, mobile..."
-              style={{ padding: '7px 14px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.82rem', outline: 'none', width: '280px', fontFamily: 'inherit', background: '#f8fafc', color: '#0f172a' }}
+              placeholder="Search by name, ID, mobile, aadhaar..."
+              style={{ padding: '7px 14px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.82rem', outline: 'none', width: '310px', fontFamily: 'inherit', background: '#f8fafc', color: '#0f172a' }}
             />
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '4px', borderRadius: '12px', border: '1px solid #e8edf2' }}>

@@ -126,12 +126,25 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const [editingJoining, setEditingJoining] = useState(false);
 
   const openEditJoiningModal = (ins) => {
+    let localDateStr = '';
+    if (ins.joining_date) {
+      try {
+        const d = new Date(ins.joining_date);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          localDateStr = `${year}-${month}-${day}`;
+        }
+      } catch (e) {}
+    }
+
     setEditJoiningForm({
       member_insurance_id: ins.insurance_id || ins.id,
       joining_amount: ins.joining_amount || 0,
       collected_amount: ins.collected_amount || 0,
       remaining_amount: ins.remaining_amount || 0,
-      joining_date: ins.joining_date ? ins.joining_date.split('T')[0] : ''
+      joining_date: localDateStr
     });
     setShowEditJoiningModal(true);
   };
@@ -322,7 +335,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
       
       showToast('Opening bond...', 'success');
       
-      const url = `${BASE_API_URL}/api/member/generate-membership-bond?id=${insuranceId}&apikey=${apikey}&token=${token}${autoPrint ? '&print=true' : ''}`;
+      const url = `${BASE_API_URL}/api/member/generate-membership-bond?id=${insuranceId}&apikey=${apikey}&token=${token}&admin=true${autoPrint ? '&print=true' : ''}`;
       const printWindow = window.open(url, "_blank");
       
       if (!printWindow) {
@@ -398,7 +411,11 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return '—';
-      return d.toISOString().split('T')[0];
+      // Format as YYYY-MM-DD in local time
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     } catch {
       return '—';
     }
