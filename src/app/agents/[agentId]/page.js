@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
-import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -56,6 +56,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [membersPage, setMembersPage] = useState(1);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // Export Modal state
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState('JOINING_FEE');
+  const [exportStatuses, setExportStatuses] = useState(['PENDING']);
+
   // Tabs & Summary
   const [activeSection, setActiveSection] = useState('Members'); // 'Members' or 'Wallet'
   const [activeTab, setActiveTab] = useState('All');
@@ -97,6 +102,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [depositAmount, setDepositAmount] = useState('');
   const [depositNotes, setDepositNotes] = useState('');
   const [depositPaymentMode, setDepositPaymentMode] = useState('Cash');
+  const [depositProofImage, setDepositProofImage] = useState(null);
+  const [payoutProofImage, setPayoutProofImage] = useState(null);
   const [submittingDeposit, setSubmittingDeposit] = useState(false);
 
   const [showEditPayoutModal, setShowEditPayoutModal] = useState(false);
@@ -225,9 +232,13 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     if (item.insurance_status === 1) {
       return { bg: '#dcfce7', color: '#15803d', label: 'Active' };
     }
-    if (item.insurance_status === 3) return { bg: '#f3e8ff', color: '#7e22ce', label: 'Invoice Generated' };
-    if (item.insurance_status === 0) return { bg: '#fef3c7', color: '#92400e', label: 'Pending/Suspended' };
-    if (item.insurance_status === -1) return { bg: '#fee2e2', color: '#991b1b', label: 'Removed' };
+    if (item.insurance_status === 0) return { bg: '#fef3c7', color: '#92400e', label: 'Pending' };
+    if (item.insurance_status === 2) return { bg: '#fee2e2', color: '#ef4444', label: 'Suspended' };
+    if (item.insurance_status === 4) return { bg: '#dcfce7', color: '#22c55e', label: 'Settled' };
+    if (item.insurance_status === 5) return { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
+    if (item.insurance_status === 6) return { bg: '#fef9c3', color: '#ca8a04', label: 'Upcoming' };
+    if (item.insurance_status === 7) return { bg: '#ede9fe', color: '#6d28d9', label: 'Married' };
+    if (item.insurance_status === -1) return { bg: '#f3f4f6', color: '#4b5563', label: 'Removed' };
     return { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
   };
 
@@ -435,16 +446,22 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     
     setSubmittingPayout(true);
     try {
+      const formData = new FormData();
+      formData.append('agent_id', agentId);
+      formData.append('amount_paid', payoutAmount);
+      formData.append('reference_note', payoutNotes);
+      if (payoutProofImage) formData.append('proof_image', payoutProofImage);
+
       const res = await apiRequest('/api/agent/payout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent_id: agentId, amount_paid: payoutAmount, reference_note: payoutNotes })
+        body: formData
       });
       if (res.s === 1) {
         showToast('Payout recorded successfully', 'success');
         setIsPayoutModalOpen(false);
         setPayoutAmount('');
         setPayoutNotes('');
+        setPayoutProofImage(null);
         fetchWalletSummary();
         fetchPayouts();
       } else {
@@ -464,15 +481,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     
     setSubmittingDeposit(true);
     try {
+      const formData = new FormData();
+      formData.append('agent_id', agentId);
+      formData.append('amount', depositAmount);
+      formData.append('reference_note', depositNotes);
+      formData.append('payment_mode', depositPaymentMode);
+      if (depositProofImage) formData.append('proof_image', depositProofImage);
+
       const res = await apiRequest('/api/agent/deposit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          agent_id: agentId, 
-          amount: depositAmount, 
-          reference_note: depositNotes,
-          payment_mode: depositPaymentMode 
-        })
+        body: formData
       });
       if (res.s === 1) {
         showToast('Deposit recorded successfully', 'success');
@@ -480,6 +498,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         setDepositAmount('');
         setDepositNotes('');
         setDepositPaymentMode('Cash');
+        setDepositProofImage(null);
         fetchWalletSummary();
         fetchDeposits();
       } else {
@@ -1182,26 +1201,35 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Wallet Tabs */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
-          {['Overview', 'Pending Joining Fees', 'Collected Joining Fees', 'Pending Slips', 'Paid Slips'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => { setWalletTab(tab); setPendingPage(1); setCommissionsPage(1); }}
-              style={{
-                padding: '8px 16px',
-                background: walletTab === tab ? '#0f172a' : 'transparent',
-                color: walletTab === tab ? '#fff' : '#64748b',
-                borderRadius: '8px',
-                fontWeight: '700',
-                fontSize: '0.85rem',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              {tab}
-            </button>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+            {['Overview', 'Pending Joining Fees', 'Collected Joining Fees', 'Pending Slips', 'Paid Slips'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => { setWalletTab(tab); setPendingPage(1); setCommissionsPage(1); }}
+                style={{
+                  padding: '8px 16px',
+                  background: walletTab === tab ? '#0f172a' : 'transparent',
+                  color: walletTab === tab ? '#fff' : '#64748b',
+                  borderRadius: '8px',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <button 
+            className="btn-primary" 
+            style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}
+            onClick={() => setShowExportModal(true)}
+          >
+            <Download size={16} /> Export Report
+          </button>
         </div>
 
         {walletTab === 'Overview' && (
@@ -1323,14 +1351,14 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f8fafc' }}>
                     <tr>
-                      {['DATE', 'AMOUNT (₹)', 'MODE', 'NOTES', 'ACTIONS'].map(h => (
+                      {['DATE', 'AMOUNT (₹)', 'MODE', 'NOTES', 'PROOF', 'ACTIONS'].map(h => (
                         <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {deposits.length === 0 ? (
-                      <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No deposits recorded yet.</td></tr>
+                      <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No deposits recorded yet.</td></tr>
                     ) : (
                       deposits.map(d => (
                         <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -1338,6 +1366,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                           <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#10b981', fontWeight: '800' }}>+ {Number(d.amount).toFixed(2)}</td>
                           <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{d.payment_mode || 'Cash'}</td>
                           <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{d.reference_note || '—'}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem' }}>
+                            {d.proof_image ? (
+                              <button onClick={() => { setZoomTitle('Deposit Proof'); setZoomImage(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/${d.proof_image}`); }} style={{ color: '#0ea5e9', textDecoration: 'underline', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>View</button>
+                            ) : '—'}
+                          </td>
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button
@@ -1373,20 +1406,25 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: '#f1f5f9' }}>
                     <tr>
-                      {['DATE', 'AMOUNT (₹)', 'NOTES', 'ACTIONS'].map(h => (
+                      {['DATE', 'AMOUNT (₹)', 'NOTES', 'PROOF', 'ACTIONS'].map(h => (
                         <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {payouts.length === 0 ? (
-                      <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No payouts recorded yet.</td></tr>
+                      <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No payouts recorded yet.</td></tr>
                     ) : (
                       payouts.map(p => (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#475569', fontWeight: '500' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                           <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#3b82f6', fontWeight: '800' }}>- {Number(p.amount_paid).toFixed(2)}</td>
                           <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b' }}>{p.reference_note || '—'}</td>
+                          <td style={{ padding: '12px 16px', fontSize: '0.8rem' }}>
+                            {p.proof_image ? (
+                              <button onClick={() => { setZoomTitle('Commission Proof'); setZoomImage(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/${p.proof_image}`); }} style={{ color: '#0ea5e9', textDecoration: 'underline', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>View</button>
+                            ) : '—'}
+                          </td>
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', gap: '8px' }}>
                               <button
@@ -1698,6 +1736,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   style={{ width: '100%' }} 
                 />
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Proof Image (Optional, for UPI/Bank)</label>
+                <input 
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setDepositProofImage(e.target.files[0])} 
+                  className="premium-input" 
+                  style={{ width: '100%', padding: '6px' }} 
+                />
+              </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button type="button" onClick={() => setIsDepositModalOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>Cancel</button>
                 <button type="submit" disabled={submittingDeposit} className="btn-primary" style={{ flex: 1, padding: '10px', background: '#10b981', borderColor: '#10b981' }}>{submittingDeposit ? 'Saving...' : 'Record Payment'}</button>
@@ -1743,6 +1791,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   className="premium-input" 
                   placeholder="e.g. Bank transfer ref #..." 
                   style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Proof Image (Optional)</label>
+                <input 
+                  type="file"
+                  accept="image/*"
+                  onChange={e => setPayoutProofImage(e.target.files[0])} 
+                  className="premium-input" 
+                  style={{ width: '100%', padding: '6px' }} 
                 />
               </div>
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
@@ -1868,6 +1926,125 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 <button type="submit" disabled={editingDeposit} className="btn-primary" style={{ flex: 1, padding: '10px' }}>{editingDeposit ? 'Saving...' : 'Update Deposit'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Export Report Modal */}
+      {showExportModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="premium-card" style={{ maxWidth: '400px', width: '100%', padding: '24px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: '#0f172a', margin: 0 }}>Export Agent Report</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Report Type</label>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                    <input 
+                      type="radio" 
+                      name="exportType" 
+                      value="JOINING_FEE" 
+                      checked={exportType === 'JOINING_FEE'} 
+                      onChange={e => setExportType(e.target.value)} 
+                    />
+                    Joining Fees
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                    <input 
+                      type="radio" 
+                      name="exportType" 
+                      value="SLIP" 
+                      checked={exportType === 'SLIP'} 
+                      onChange={e => {
+                        setExportType(e.target.value);
+                        if (exportStatuses.length > 1) {
+                          setExportStatuses(['COLLECTED']);
+                        }
+                      }} 
+                    />
+                    Payment Slips
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+              {exportType === 'SLIP' ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Status (Select One)</label>
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                      <input 
+                        type="radio" 
+                        name="exportStatusRadio"
+                        checked={exportStatuses.includes('PENDING')} 
+                        onChange={() => setExportStatuses(['PENDING'])} 
+                      />
+                      Pending
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                      <input 
+                        type="radio" 
+                        name="exportStatusRadio"
+                        checked={exportStatuses.includes('COLLECTED')} 
+                        onChange={() => setExportStatuses(['COLLECTED'])} 
+                      />
+                      Collected (Paid)
+                    </label>
+                  </div>
+                  {exportStatuses.length === 0 && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block', fontWeight: '500' }}>Please select a status.</span>}
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Status (Multi-select)</label>
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={exportStatuses.includes('PENDING')} 
+                        onChange={e => {
+                          if (e.target.checked) setExportStatuses([...exportStatuses, 'PENDING']);
+                          else setExportStatuses(exportStatuses.filter(s => s !== 'PENDING'));
+                        }} 
+                      />
+                      Pending
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={exportStatuses.includes('COLLECTED')} 
+                        onChange={e => {
+                          if (e.target.checked) setExportStatuses([...exportStatuses, 'COLLECTED']);
+                          else setExportStatuses(exportStatuses.filter(s => s !== 'COLLECTED'));
+                        }} 
+                      />
+                      Collected (Paid)
+                    </label>
+                  </div>
+                  {exportStatuses.length === 0 && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block', fontWeight: '500' }}>Please select at least one status.</span>}
+                </div>
+              )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+              <button type="button" onClick={() => setShowExportModal(false)} className="btn-secondary" style={{ flex: 1, padding: '10px' }}>Cancel</button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                style={{ flex: 1, padding: '10px', background: exportStatuses.length === 0 ? '#cbd5e1' : '#0ea5e9', cursor: exportStatuses.length === 0 ? 'not-allowed' : 'pointer', border: 'none' }}
+                disabled={exportStatuses.length === 0}
+                onClick={() => {
+                  const apikey = localStorage.getItem('sky_apikey') || '';
+                  const token = localStorage.getItem('sky_token') || '';
+                  const statusQuery = exportStatuses.join(',');
+                  window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/agent/generate-agent-report-pdf/${agentId}?type=${exportType}&status=${statusQuery}&apikey=${apikey}&token=${token}`, '_blank');
+                  setShowExportModal(false);
+                }}
+              >
+                Generate PDF
+              </button>
+            </div>
           </div>
         </div>
       )}

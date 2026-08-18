@@ -84,7 +84,7 @@ export default function CreateCampaignPage() {
     fetchRules();
   }, [selectedPlan]);
 
-  // When plan and dates change, fetch eligible married members
+  // When plan and dates change, fetch eligible members
   useEffect(() => {
     if (!selectedPlan || !startDate || !endDate) {
       setMarriedMembers([]);
@@ -107,7 +107,7 @@ export default function CreateCampaignPage() {
         setSelectedMemberIds([]);
       } catch (err) {
         console.error(err);
-        showToast('Error loading eligible married members', 'error');
+        showToast('Error loading eligible members', 'error');
       } finally {
         setLoadingMembers(false);
       }
@@ -195,7 +195,7 @@ export default function CreateCampaignPage() {
 
     if (!selectedPlan) return showToast('Please select a plan', 'error');
     if (rulesError || dbRules.length === 0) return showToast('Plan has no active age-wise payment rules. Please configure rules first.', 'error');
-    if (selectedMemberIds.length === 0) return showToast('Please select at least one married member', 'error');
+    if (selectedMemberIds.length === 0) return showToast('Please select at least one member', 'error');
     if (!startDate || !endDate) return showToast('Please select a valid date range', 'error');
     if (new Date(endDate) < new Date(startDate)) return showToast('End Date must be after Start Date', 'error');
     if (!dueDate) return showToast('Please select a due date', 'error');
@@ -320,11 +320,11 @@ export default function CreateCampaignPage() {
                 </select>
               </div>
 
-              {/* Step 2: Select Married Members */}
+              {/* Step 2: Select Members */}
               {selectedPlan && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>2. Select Married Members *</label>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>2. Select Members *</label>
                     {marriedMembers.length > 0 && (
                       <button type="button" onClick={handleSelectAll} style={{ background: 'none', border: 'none', color: '#0ea5e9', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {selectedMemberIds.length === marriedMembers.length ? <CheckSquare size={14} /> : <Square size={14} />}
@@ -335,9 +335,9 @@ export default function CreateCampaignPage() {
                   
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', background: '#f8fafc' }}>
                     {loadingMembers ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>Loading married members...</div>
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>Loading members...</div>
                     ) : marriedMembers.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>No eligible married members available for selected period.</div>
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>No eligible members available for selected period.</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {marriedMembers.map(item => {
@@ -479,11 +479,15 @@ export default function CreateCampaignPage() {
 
         {/* Right Column - Preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="premium-card" style={{ padding: '24px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <Calculator size={18} color="#0ea5e9" />
-              Calculation Preview
+          <div className="premium-card" style={{ padding: '24px', flex: 1, overflow: 'hidden' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1e293b', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={18} color="var(--primary)" />
+              Select Eligible Members / Events
             </h2>
+            
+            <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '16px', lineHeight: 1.5 }}>
+              Select the members whose events (Marriage or Death) fall in the selected date range. Payment dues will be collected for these members.
+            </p>
 
             {loadingPreview ? (
               <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>Calculating deduplication...</div>
@@ -513,7 +517,7 @@ export default function CreateCampaignPage() {
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Selected Married Members:</span>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Selected Members:</span>
                       <span style={{ fontSize: '1rem', color: '#8b5cf6', fontWeight: '800' }}>{preview.selected_married_count}</span>
                     </div>
 
@@ -557,7 +561,7 @@ export default function CreateCampaignPage() {
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                                   <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: '700', color: '#475569' }}>Age Range</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#475569' }}>Base Amt</th>
-                                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>× Marriages</th>
+                                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>× Count</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#475569' }}>Members</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#475569' }}>Total</th>
                                 </tr>
@@ -597,11 +601,11 @@ export default function CreateCampaignPage() {
                 {calculationMode === 'fixed' && (
                   <div style={{ borderTop: '1.5px solid #e2e8f0', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Per Marriage Amount:</span>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Amount per Event:</span>
                       <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '800' }}>{formatCurrency(preview.perMarriageAmount)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Selected Marriages:</span>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>Selected Events:</span>
                       <span style={{ fontSize: '1rem', color: '#0f172a', fontWeight: '800' }}>{preview.marriedCount}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -617,7 +621,7 @@ export default function CreateCampaignPage() {
                 <Info size={32} />
                 <p style={{ fontSize: '0.85rem', textAlign: 'center' }}>
                   {!selectedPlan ? "Please select a plan." :
-                   selectedMemberIds.length === 0 ? "Please select at least one married member." :
+                   selectedMemberIds.length === 0 ? "Please select at least one member." :
                    (!startDate || !endDate) ? "Please select start and end dates." :
                    !dueDate ? "Please select final due date." :
                    "Fill out all required fields to see the deduplication preview."}

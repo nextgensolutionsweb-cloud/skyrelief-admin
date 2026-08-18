@@ -14,9 +14,15 @@ const insuranceStatusStyle = {
 };
 
 const marriageStatusStyle = {
-  1: { bg: '#ffedd5', color: '#c2410c', label: 'Upcoming' },
+  1: { bg: '#fef08a', color: '#854d0e', label: 'Upcoming' },
   2: { bg: '#dcfce7', color: '#15803d', label: 'Married' },
-  default: { bg: '#f1f5f9', color: '#475569', label: 'No Marriage' },
+  default: { bg: '#f1f5f9', color: '#94a3b8', label: 'N/A' },
+};
+
+const deathStatusStyle = {
+  1: { bg: '#dbeafe', color: '#1d4ed8', label: 'Reported' },
+  2: { bg: '#dcfce7', color: '#15803d', label: 'Settled' },
+  default: { bg: '#f1f5f9', color: '#94a3b8', label: 'N/A' },
 };
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
@@ -24,10 +30,15 @@ const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.o
 export default function MembersListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialAccountStatus = searchParams.get('account_status') || '';
+  const initialSearch = searchParams.get('search') || '';
+  const initialMainFilter = searchParams.get('filter') || (searchParams.get('account_status') === '2' ? 'suspended' : 'active');
+  const initialAgentId = searchParams.get('agent_id') || '';
   const initialPlanId = searchParams.get('plan_id') || '';
   const initialMinAge = searchParams.get('min_age') || '';
   const initialMaxAge = searchParams.get('max_age') || '';
+  const initialStartDate = searchParams.get('start_date') || '';
+  const initialEndDate = searchParams.get('end_date') || '';
+  const initialPage = parseInt(searchParams.get('page') || '1', 10);
   
   const [list, setList] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -37,24 +48,27 @@ export default function MembersListPage() {
   const [error, setError] = useState(null);
   
   // Filters state
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [mainFilter, setMainFilter] = useState(initialAccountStatus === '2' ? 'suspended' : 'active');
+  const [searchInput, setSearchInput] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [mainFilter, setMainFilter] = useState(initialMainFilter);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearch(searchInput.trim());
-      setPage(1);
+      if (searchInput.trim() !== search) setPage(1);
     }, 400);
     return () => clearTimeout(handler);
   }, [searchInput]);
-  const [selectedAgent, setSelectedAgent] = useState('');
+
+  const [selectedAgent, setSelectedAgent] = useState(initialAgentId);
   const [selectedPlan, setSelectedPlan] = useState(initialPlanId);
   const [minAge, setMinAge] = useState(initialMinAge);
   const [maxAge, setMaxAge] = useState(initialMaxAge);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
 
   // Pagination state
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(10);
   const [meta, setMeta] = useState(null);
 
@@ -99,7 +113,7 @@ export default function MembersListPage() {
 
       const actualLimit = limit === 'All' ? 999999 : limit;
       const res = await apiRequest(
-        `/api/member/get-all?page=${page}&limit=${actualLimit}&search=${encodeURIComponent(search)}&agent_id=${selectedAgent}&plan_id=${selectedPlan}&insurance_status=${reqInsuranceStatus}&marriage_status=${reqMarriageStatus}&account_status=${reqAccountStatus}&min_age=${minAge}&max_age=${maxAge}`
+        `/api/member/get-all?page=${page}&limit=${actualLimit}&search=${encodeURIComponent(search)}&agent_id=${selectedAgent}&plan_id=${selectedPlan}&insurance_status=${reqInsuranceStatus}&marriage_status=${reqMarriageStatus}&account_status=${reqAccountStatus}&min_age=${minAge}&max_age=${maxAge}&start_date=${startDate}&end_date=${endDate}`
       );
       if (res.s === 1 && Array.isArray(res.r)) {
         setList(res.r);
@@ -136,8 +150,25 @@ export default function MembersListPage() {
   }, [selectedPlan]);
 
   useEffect(() => {
+    // Sync filters to URL
+    const params = new URLSearchParams(searchParams.toString());
+    if (search) params.set('search', search); else params.delete('search');
+    if (mainFilter) params.set('filter', mainFilter); else params.delete('filter');
+    if (selectedAgent) params.set('agent_id', selectedAgent); else params.delete('agent_id');
+    if (selectedPlan) params.set('plan_id', selectedPlan); else params.delete('plan_id');
+    if (minAge) params.set('min_age', minAge); else params.delete('min_age');
+    if (maxAge) params.set('max_age', maxAge); else params.delete('max_age');
+    if (startDate) params.set('start_date', startDate); else params.delete('start_date');
+    if (endDate) params.set('end_date', endDate); else params.delete('end_date');
+    if (page !== 1) params.set('page', page.toString()); else params.delete('page');
+    
+    // Remove the legacy ones so they don't stick around
+    params.delete('account_status');
+    
+    router.replace(`?${params.toString()}`, { scroll: false });
+    
     fetchMembers();
-  }, [page, limit, search, selectedAgent, selectedPlan, mainFilter, minAge, maxAge]);
+  }, [page, limit, search, selectedAgent, selectedPlan, mainFilter, minAge, maxAge, startDate, endDate]);
 
   const handleSearchChange = (e) => {
     setSearchInput(e.target.value);
@@ -235,6 +266,13 @@ export default function MembersListPage() {
     return item.scheme_name || item.scheme || 'N/A';
   };
 
+  const getPlanType = (item) => {
+    const planId = item.plan_id;
+    const matched = plans.find(p => String(p.id) === String(planId));
+    if (matched) return Number(matched.plan_type || 1);
+    return 1;
+  };
+
   const getProfileImage = (item) => {
     const details = item.member_details || {};
     const imgPath = details.profile_image || details.profile_photo || item.profile_photo || item.profile;
@@ -278,7 +316,7 @@ export default function MembersListPage() {
         reqMarriageStatus = '1';
       }
       
-      const res = await apiRequest(`/api/member/get-all?page=1&limit=999999&search=${encodeURIComponent(search)}&agent_id=${selectedAgent}&plan_id=${selectedPlan}&insurance_status=${reqInsuranceStatus}&marriage_status=${reqMarriageStatus}&account_status=${reqAccountStatus}&min_age=${minAge}&max_age=${maxAge}`);
+      const res = await apiRequest(`/api/member/get-all?page=1&limit=999999&search=${encodeURIComponent(search)}&agent_id=${selectedAgent}&plan_id=${selectedPlan}&insurance_status=${reqInsuranceStatus}&marriage_status=${reqMarriageStatus}&account_status=${reqAccountStatus}&min_age=${minAge}&max_age=${maxAge}&start_date=${startDate}&end_date=${endDate}`);
       
       if (res.s === 1 && Array.isArray(res.r)) {
         if (res.r.length === 0) {
@@ -503,6 +541,23 @@ export default function MembersListPage() {
                 </>
               )}
             </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Date Range:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => { setStartDate(e.target.value); setPage(1); }}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => { setEndDate(e.target.value); setPage(1); }}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+              />
+            </div>
           </div>
         </div>
 
@@ -523,7 +578,7 @@ export default function MembersListPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
-                  {['MEMBER', 'MOBILE', 'GENDER', 'INSURANCE PLAN', 'REGISTERED BY', 'INSURANCE', 'MARRIAGE', 'CREATED DATE', 'ACTIONS'].map(h => (
+                  {['MEMBER', 'MOBILE', 'INSURANCE PLAN', 'REGISTERED BY', 'INSURANCE', 'JOINING DATE', 'ACTIONS'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                   ))}
                 </tr>
@@ -531,7 +586,7 @@ export default function MembersListPage() {
               <tbody>
                 {list.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={7} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
                       <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
                       <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155' }}>No Members Found</div>
                       <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>Try adjusting your search or filters.</div>
@@ -545,10 +600,37 @@ export default function MembersListPage() {
                   const mobile = item.member_details?.mobile || item.phone || item.mobile || 'N/A';
                   const gender = item.member_details?.gender || item.gender || 'N/A';
                   const plan = getPlanName(item);
+                  const planType = getPlanType(item);
                   const agent = getAgentName(item);
-                  const insStatusInfo = insuranceStatusStyle[item.insurance_status] || { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
-                  const marStatusInfo = marriageStatusStyle[item.marriage_status] || marriageStatusStyle.default;
-                  const createdDate = item.created_at ? item.created_at.split('T')[0] : 'N/A';
+                  let insStatusInfo = insuranceStatusStyle[item.insurance_status] || { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
+                  
+                  if (planType === 2 && (String(item.insurance_status) === '3' || String(item.insurance_status) === '2')) {
+                    insStatusInfo = { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
+                  }
+                  
+                  const marStatusInfo = planType === 2 
+                    ? (deathStatusStyle[item.death_status] || deathStatusStyle.default) 
+                    : (marriageStatusStyle[item.marriage_status] || marriageStatusStyle.default);
+                  
+                  const joiningDateRaw = item.insurance_joining_date || item.joining_date || item.created_at;
+                  const joiningDate = joiningDateRaw ? new Date(joiningDateRaw).toLocaleDateString() : 'N/A';
+                  
+                  const timeAgo = (dateStr) => {
+                    if (!dateStr) return 'N/A';
+                    const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
+                    let interval = seconds / 31536000;
+                    if (interval >= 1) return Math.floor(interval) + " y";
+                    interval = seconds / 2592000;
+                    if (interval >= 1) return Math.floor(interval) + " m";
+                    interval = seconds / 86400;
+                    if (interval >= 1) return Math.floor(interval) + " d";
+                    interval = seconds / 3600;
+                    if (interval >= 1) return Math.floor(interval) + " h";
+                    interval = seconds / 60;
+                    if (interval >= 1) return Math.floor(interval) + " min";
+                    return Math.floor(seconds) + " s";
+                  };
+                  
                   const profileUrl = getProfileImage(item);
 
                   return (
@@ -558,7 +640,11 @@ export default function MembersListPage() {
                     >
                       {/* Profile & Name */}
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div 
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                          onClick={() => router.push(`/members/${memberId}`)}
+                          title="View Profile"
+                        >
                           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#0ea5e9', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
                             {profileUrl ? (
                               <img src={profileUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -569,7 +655,7 @@ export default function MembersListPage() {
                           <div>
                             <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {name}
-                              {item.account_status === 2 && (
+                              {item.account_status === 2 && insStatusInfo.label !== 'Deceased' && (
                                 <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem' }}>Suspended</span>
                               )}
                             </div>
@@ -581,8 +667,7 @@ export default function MembersListPage() {
                       {/* Mobile */}
                       <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#334155' }}>{mobile}</td>
 
-                      {/* Gender */}
-                      <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#475569' }}>{gender}</td>
+                      {/* Removed Gender */}
 
                       {/* Plan */}
                       <td style={{ padding: '12px 16px' }}>
@@ -601,15 +686,10 @@ export default function MembersListPage() {
                         </span>
                       </td>
 
-                      {/* Marriage Status */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ display: 'inline-block', textAlign: 'center', minWidth: '70px', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '700', background: marStatusInfo.bg, color: marStatusInfo.color }}>
-                          {marStatusInfo.label}
-                        </span>
-                      </td>
+                      {/* Removed Event Status */}
 
-                      {/* Created Date */}
-                      <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#64748b' }}>{createdDate}</td>
+                      {/* Joining Date */}
+                      <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>{joiningDate}</td>
 
                       {/* Actions */}
                       <td style={{ padding: '12px 16px' }}>

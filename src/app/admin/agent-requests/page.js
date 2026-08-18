@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
+import Modal from '@/components/Modal';
+
+const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
 
 export default function AgentRequestsPage() {
   const router = useRouter();
@@ -14,11 +17,77 @@ export default function AgentRequestsPage() {
 
   // Reject Modal State
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectData, setRejectData] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [memberDetails, setMemberDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const [zoomImage, setZoomImage] = useState(null);
+  const [zoomTitle, setZoomTitle] = useState('');
 
   useEffect(() => {
+    if (selectedRequest && selectedRequest.member_id) {
+      fetchMemberDetails(selectedRequest);
+    } else {
+      setMemberDetails(null);
+    }
+  }, [selectedRequest]);
+
+  const fetchMemberDetails = async (req) => {
+    setLoadingDetails(true);
+    try {
+      const res = await apiRequest(`/api/member/get?id=${req.member_id}`);
+      if (res.s === 1 && res.r) {
+        const dataArr = Array.isArray(res.r) ? res.r : [res.r];
+        let relevantData = dataArr[0];
+        if (req.type === 'plan') {
+           const match = dataArr.find(d => d.insurance_id === req.request_id);
+           if (match) relevantData = match;
+        } else {
+           const match = dataArr.find(d => d.insurance_status === 0);
+           if (match) relevantData = match;
+        }
+        setMemberDetails(relevantData);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const formatAadhaar = (aadhaar) => {
+    if (!aadhaar) return '—';
+    const cleaned = String(aadhaar).replace(/\D/g, '');
+    if (cleaned.length === 12) {
+      return cleaned.match(/.{1,4}/g).join(' ');
+    }
+    return aadhaar;
+  };
+
+  const renderImage = (path, title) => {
+    if (!path) return null;
+    const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+        <img 
+          src={url} 
+          alt={title} 
+          onClick={() => { setZoomImage(url); setZoomTitle(title); }}
+          style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e2e8f0', background: '#f8fafc' }}
+          onError={(e) => e.target.style.display = 'none'}
+        />
+        <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>{title}</span>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
     if (activeTab === 'pending') {
       fetchRequests();
     } else {
@@ -103,6 +172,12 @@ export default function AgentRequestsPage() {
     }
   };
 
+  const currentRequests = requests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalRequestPages = Math.ceil(requests.length / itemsPerPage);
+
+  const currentLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalLogPages = Math.ceil(logs.length / itemsPerPage);
+
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -162,7 +237,7 @@ export default function AgentRequestsPage() {
                     </td>
                   </tr>
                 ) : (
-                  requests.map((req) => (
+                  currentRequests.map((req) => (
                     <tr key={`${req.type}-${req.request_id}`} style={{ borderTop: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '16px' }}>
                         {req.type === 'member' ? (
@@ -189,7 +264,7 @@ export default function AgentRequestsPage() {
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button 
-                            onClick={() => router.push(`/members/${req.member_id}`)}
+                            onClick={() => setSelectedRequest(req)}
                             title="View Profile Details"
                             style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
                             <Eye size={14} /> View
@@ -207,6 +282,13 @@ export default function AgentRequestsPage() {
                 )}
               </tbody>
             </table>
+          )}
+          {!loading && totalRequestPages > 1 && (
+            <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569' }}>Previous</button>
+              <span style={{ padding: '6px 12px', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalRequestPages}</span>
+              <button disabled={currentPage === totalRequestPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalRequestPages ? '#f1f5f9' : 'white', cursor: currentPage === totalRequestPages ? 'not-allowed' : 'pointer', color: '#475569' }}>Next</button>
+            </div>
           )}
         </div>
       )}
@@ -235,7 +317,7 @@ export default function AgentRequestsPage() {
                     </td>
                   </tr>
                 ) : (
-                  logs.map((log) => (
+                  currentLogs.map((log) => (
                     <tr key={log.id} style={{ borderTop: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '16px' }}>
                         {log.type === 'member' ? (
@@ -268,43 +350,129 @@ export default function AgentRequestsPage() {
               </tbody>
             </table>
           )}
+          {!loading && totalLogPages > 1 && (
+            <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569' }}>Previous</button>
+              <span style={{ padding: '6px 12px', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalLogPages}</span>
+              <button disabled={currentPage === totalLogPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalLogPages ? '#f1f5f9' : 'white', cursor: currentPage === totalLogPages ? 'not-allowed' : 'pointer', color: '#475569' }}>Next</button>
+            </div>
+          )}
         </div>
       )}
 
       {showRejectModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <XCircle color="#ef4444" /> Reject Request
-            </h2>
-            <p style={{ color: '#475569', fontSize: '0.9rem', marginBottom: '16px' }}>
-              This will permanently delete the submitted details so the agent can retry. Please provide a clear reason for rejection.
-            </p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="e.g., Aadhaar card image is blurred, Name mismatch..."
-              style={{ width: '100%', height: '100px', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '16px', fontFamily: 'inherit', resize: 'none' }}
-            />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '16px', color: '#0f172a' }}>Reject Request</h2>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Reason for Rejection *</label>
+              <textarea 
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter rejection reason..."
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical' }}
+              />
+            </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setShowRejectModal(false)}
-                disabled={processing}
-                style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
-              >
+                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>
                 Cancel
               </button>
               <button 
                 onClick={confirmReject}
-                disabled={processing || !rejectReason.trim()}
-                style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: processing || !rejectReason.trim() ? 'not-allowed' : 'pointer' }}
-              >
+                disabled={processing}
+                style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}>
                 {processing ? 'Processing...' : 'Confirm Reject'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* View Request Modal */}
+      <Modal open={!!selectedRequest} onClose={() => setSelectedRequest(null)} title="Request Details" width={600}>
+        {selectedRequest && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.9rem', background: '#f8fafc', padding: '16px', borderRadius: '8px' }}>
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.8rem', display: 'block' }}>Request Type</span>
+                <span style={{ fontWeight: '600' }}>{selectedRequest.type === 'member' ? 'New Member Registration' : 'New Plan Assignment'}</span>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', fontSize: '0.8rem', display: 'block' }}>Requested At</span>
+                <span style={{ fontWeight: '600' }}>{new Date(selectedRequest.created_at).toLocaleString()}</span>
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <span style={{ color: '#64748b', fontSize: '0.8rem', display: 'block' }}>Agent</span>
+                <span style={{ fontWeight: '600', color: '#0ea5e9' }}>{selectedRequest.agent_name || 'N/A'}</span>
+              </div>
+            </div>
+
+            {loadingDetails ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>Loading details...</div>
+            ) : memberDetails ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '12px', color: '#0f172a' }}>Member Info</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                    <div><span style={{ color: '#64748b' }}>Name:</span> <span style={{ fontWeight: '600' }}>{memberDetails.full_name}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Code:</span> <span style={{ fontWeight: '600' }}>{memberDetails.member_code}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Phone:</span> <span style={{ fontWeight: '600' }}>{memberDetails.phone}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Aadhaar:</span> <span style={{ fontWeight: '600' }}>{formatAadhaar(memberDetails.aadhaar || memberDetails.aadhaar_number)}</span></div>
+                    <div><span style={{ color: '#64748b' }}>DOB:</span> <span style={{ fontWeight: '600' }}>{memberDetails.dob ? new Date(memberDetails.dob).toLocaleDateString() : '—'}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Gender:</span> <span style={{ fontWeight: '600' }}>{memberDetails.gender || '—'}</span></div>
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '12px', color: '#0f172a' }}>Requested Insurance</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+                    <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Plan:</span> <span style={{ fontWeight: '600' }}>{memberDetails.plan_name || selectedRequest.plan_name || 'N/A'}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Guardian:</span> <span style={{ fontWeight: '600' }}>{memberDetails.guardian || '—'}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Relation:</span> <span style={{ fontWeight: '600' }}>{memberDetails.relation || '—'}</span></div>
+                    <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Guardian Aadhaar:</span> <span style={{ fontWeight: '600' }}>{formatAadhaar(memberDetails.guardian_aadhaar_number || memberDetails.guardian_aadhar_no)}</span></div>
+                  </div>
+                </div>
+
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '12px', color: '#0f172a' }}>Documents</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                    {renderImage(memberDetails.photo, 'Photo')}
+                    {renderImage(memberDetails.aadhaar_front, 'Aadhaar Front')}
+                    {renderImage(memberDetails.aadhaar_back, 'Aadhaar Back')}
+                    {renderImage(memberDetails.pan_img, 'PAN Card')}
+                    {renderImage(memberDetails.guardian_aadhaar_img, 'Guardian Aadhaar')}
+                    {renderImage(memberDetails.signature, 'Signature')}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#ef4444' }}>Could not load full details.</div>
+            )}
+            
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => { router.push(`/members/${selectedRequest.member_id}`); setSelectedRequest(null); }} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>View Full Profile</button>
+              <button onClick={() => { handleApprove(selectedRequest.request_id, selectedRequest.type); setSelectedRequest(null); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Approve</button>
+              <button onClick={() => { initiateReject(selectedRequest.request_id, selectedRequest.type); setSelectedRequest(null); }} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Reject</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Zoom Lightbox */}
+      {zoomImage && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', top: '24px', right: '32px', display: 'flex', gap: '16px' }}>
+            <button onClick={() => setZoomImage(null)} style={{ background: 'white', color: '#0f172a', border: 'none', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <XCircle size={24} />
+            </button>
+          </div>
+          <div style={{ position: 'absolute', top: '32px', left: '32px', color: 'white', fontSize: '1.25rem', fontWeight: 'bold' }}>{zoomTitle}</div>
+          <img src={zoomImage} alt={zoomTitle} style={{ maxWidth: '90vw', maxHeight: '85vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }} />
+        </div>
+      )}
+
     </div>
   );
 }

@@ -331,12 +331,12 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
                       className="btn-secondary"
                       style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                     >
-                      <Download size={12} /> Download Invitation Card
+                      <Download size={12} /> Download Document
                     </a>
                   </div>
                 ) : (
                   <div style={{ height: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.72rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
-                    <span>No Invitation Card Uploaded</span>
+                    <span>No Document Uploaded</span>
                   </div>
                 )}
               </div>

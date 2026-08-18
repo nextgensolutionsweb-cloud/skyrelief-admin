@@ -85,8 +85,8 @@ ul { list-style: none; }
 }
 
 .content-area {
-  padding: 32px 40px;
-  flex: 1;
+  padding: 32px 40px 100px 40px;
+  
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;

@@ -192,7 +192,11 @@ export default function AgentsPage() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div 
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+                        onClick={() => router.push(`/agents/${a.id}`)}
+                        title="View Agent Profile"
+                      >
                         {(() => {
                           const profileUrl = a.profile || a.profile_photo;
                           const imageUrl = profileUrl ? getImageUrl(profileUrl) : "";
@@ -215,7 +219,6 @@ export default function AgentsPage() {
                         })()}
                         <div>
                           <div style={{ fontWeight: '600', fontSize: '0.85rem', color: '#0f172a' }}>{a.first_name} {a.last_name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>ID: {a.id}</div>
                         </div>
                       </div>
                     </td>

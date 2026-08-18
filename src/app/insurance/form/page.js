@@ -10,6 +10,7 @@ const emptyForm = {
   term_condition: '',
   start_date: '',
   example_html: '',
+  plan_type: '1',
 };
 
 const defaultAgeRules = [
@@ -47,6 +48,7 @@ export default function InsuranceFormPage() {
               term_condition: data.term_condition || '',
               start_date: data.start_date ? data.start_date.split('T')[0] : '',
               example_html: data.example_html || '',
+              plan_type: String(data.plan_type || '1'),
             });
             if (data.image) {
               setImagePreview(data.image.startsWith('http') ? data.image : `${BASE_API_URL}${data.image}`);
@@ -178,6 +180,8 @@ export default function InsuranceFormPage() {
       formData.append('image', imageFile);
     }
     
+    formData.append('plan_type', form.plan_type);
+    
     if (form.start_date) {
       formData.append('start_date', form.start_date);
     }
@@ -303,6 +307,18 @@ export default function InsuranceFormPage() {
                   className="premium-input"
                   style={{ width: '100%' }}
                 />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Plan Type *</label>
+                <select
+                  value={form.plan_type}
+                  onChange={e => handleInputChange('plan_type', e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%' }}
+                >
+                  <option value="1">Marriage Assistance (Shaadi Sahyog)</option>
+                  <option value="2">Death Assistance (Suraksha Sahyog)</option>
+                </select>
               </div>
             </div>
           </div>

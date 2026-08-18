@@ -13,6 +13,15 @@ const statusStyle = {
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
 
+const formatAadhaar = (aadhaar) => {
+  if (!aadhaar) return '—';
+  const cleaned = String(aadhaar).replace(/\D/g, '');
+  if (cleaned.length === 12) {
+    return cleaned.match(/.{1,4}/g).join(' ');
+  }
+  return aadhaar;
+};
+
 export default function MemberProfilePage({ params: paramsPromise }) {
   const router = useRouter();
   const params = use(paramsPromise);
@@ -56,7 +65,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
 
   // Assign Insurance states
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [assignForm, setAssignForm] = useState({ plan_id: '', agent_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: new Date().toISOString().split('T')[0] });
+  const [assignForm, setAssignForm] = useState({ plan_id: '', agent_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: new Date().toISOString().split('T')[0], guardian_name: '', guardian_relation: '', guardian_aadhar_no: '', guardian_aadhar_photo: null });
   const [assigning, setAssigning] = useState(false);
   const [activePlans, setActivePlans] = useState([]);
   const [memberInsurances, setMemberInsurances] = useState([]);
@@ -93,22 +102,28 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     }
     setAssigning(true);
     try {
+      const formData = new FormData();
+      formData.append('member_code', member.member_code);
+      formData.append('plan_id', assignForm.plan_id);
+      formData.append('agent_id', assignForm.agent_id);
+      formData.append('joining_amount', assignForm.joining_amount || 0);
+      formData.append('collected_amount', assignForm.collected_amount || 0);
+      formData.append('remaining_amount', assignForm.remaining_amount || 0);
+      formData.append('joining_date', assignForm.joining_date);
+      if (assignForm.guardian_name) formData.append('guardian_name', assignForm.guardian_name);
+      if (assignForm.guardian_relation) formData.append('guardian_relation', assignForm.guardian_relation);
+      if (assignForm.guardian_aadhar_no) formData.append('guardian_aadhar_no', assignForm.guardian_aadhar_no);
+      if (assignForm.guardian_aadhar_photo) formData.append('guardian_aadhar_photo', assignForm.guardian_aadhar_photo);
+
       const res = await apiRequest('/api/member/assign-insurance-access', {
         method: 'POST',
-        body: JSON.stringify({
-          member_code: member.member_code,
-          plan_id: assignForm.plan_id,
-          agent_id: assignForm.agent_id,
-          joining_amount: assignForm.joining_amount || 0,
-          collected_amount: assignForm.collected_amount || 0,
-          remaining_amount: assignForm.remaining_amount || 0,
-          joining_date: assignForm.joining_date,
-        })
+        body: formData,
+        isFormData: true
       });
       if (res.s === 1) {
         showToast('Insurance assigned successfully', 'success');
         setShowAssignModal(false);
-        setAssignForm({ plan_id: '', agent_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: new Date().toISOString().split('T')[0] });
+        setAssignForm({ plan_id: '', agent_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: new Date().toISOString().split('T')[0], guardian_name: '', guardian_relation: '', guardian_aadhar_no: '', guardian_aadhar_photo: null });
         loadData();
       } else {
         showToast(res.m || 'Failed to assign insurance', 'error');
@@ -122,7 +137,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   };
 
   const [showEditJoiningModal, setShowEditJoiningModal] = useState(false);
-  const [editJoiningForm, setEditJoiningForm] = useState({ member_insurance_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: '' });
+  const [editJoiningForm, setEditJoiningForm] = useState({ member_insurance_id: '', joining_amount: '', collected_amount: '', remaining_amount: '', joining_date: '', agent_id: '', guardian_name: '', guardian_relation: '', guardian_aadhar_no: '', guardian_aadhar_photo: null });
   const [editingJoining, setEditingJoining] = useState(false);
 
   const openEditJoiningModal = (ins) => {
@@ -144,7 +159,12 @@ export default function MemberProfilePage({ params: paramsPromise }) {
       joining_amount: ins.joining_amount || 0,
       collected_amount: ins.collected_amount || 0,
       remaining_amount: ins.remaining_amount || 0,
-      joining_date: localDateStr
+      joining_date: localDateStr,
+      agent_id: ins.agent_id || '',
+      guardian_name: ins.guardian || ins.guardian_name || '',
+      guardian_relation: ins.relation || ins.guardian_relation || '',
+      guardian_aadhar_no: ins.guardian_aadhaar_number || ins.guardian_aadhar_no || '',
+      guardian_aadhar_photo: null
     });
     setShowEditJoiningModal(true);
   };
@@ -153,9 +173,16 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     e.preventDefault();
     setEditingJoining(true);
     try {
+      const formData = new FormData();
+      Object.keys(editJoiningForm).forEach(key => {
+        if (editJoiningForm[key] !== null && editJoiningForm[key] !== undefined && editJoiningForm[key] !== '') {
+          formData.append(key, editJoiningForm[key]);
+        }
+      });
       const res = await apiRequest('/api/member/update-joining-fee', {
         method: 'POST',
-        body: JSON.stringify(editJoiningForm)
+        body: formData,
+        isFormData: true
       });
       if (res.s === 1) {
         showToast('Joining fee updated successfully', 'success');
@@ -495,7 +522,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
             </button>
             <button className="btn-secondary" onClick={() => setConfirmSuspend(true)} style={{ color: member.account_status === 1 ? 'var(--warning)' : 'var(--success)', padding: '6px 12px', fontSize: '0.75rem' }}>
               <Ban size={14} />
-              <span>{member.account_status === 1 ? 'Suspend' : 'Reactivate'}</span>
+              <span>{member.account_status === 1 ? 'Suspend' : (member.account_status === 0 ? 'Approve' : 'Reactivate')}</span>
             </button>
             <button className="btn-secondary" onClick={() => setConfirmDelete(true)} style={{ color: 'var(--danger)', padding: '6px 12px', fontSize: '0.75rem' }}>
               <Trash2 size={14} /> <span>Delete Member</span>
@@ -550,13 +577,10 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Alternate Mobile:</span>
                 <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}><Phone size={11} style={{ display: 'inline', marginRight: '4px' }} />{member.alt_mobile || details.alternate_mobile || details.alt_mobile || '—'}</span>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Email Address:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}><Mail size={11} style={{ display: 'inline', marginRight: '4px' }} />{member.email || details.email || '—'}</span>
-              </div>
+            
                <div style={{  }}>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Aadhaar No:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar || '—'}</span>
+                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{formatAadhaar(member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar)}</span>
               </div>
               
                <div>
@@ -566,28 +590,6 @@ export default function MemberProfilePage({ params: paramsPromise }) {
             </div>
           </div>
 
-          {/* Card 2: Family Information */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-              <Users size={16} color="var(--primary)" />
-              <span>Family Information</span>
-            </h2>
-            <div className="grid-r-2" style={{ gap: '12px', fontSize: '0.8rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Guardian Name:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{member.guardian || member.guardian_name || details.guardian_name || details.guardian || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Guardian Relation:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{member.relation || member.guardian_relation || details.guardian_relation || details.relation || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Guardian Aadhaar No:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{member.guardian_aadhaar_number || details.guardian_aadhaar_number || '—'}</span>
-              </div>
-
-            </div>
-          </div>
 
           {/* Card 3: Address Details */}
           <div className="premium-card" style={{ padding: '20px' }}>
@@ -685,29 +687,6 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 );
               })()}
 
-              {/* Guardian Aadhaar Image */}
-              {(() => {
-                const imgUrl = guardianAaUrl || null;
-                return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '190px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Guardian Aadhaar</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt="Guardian Aadhaar"
-                          style={{ width: '100%', height: '110px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
-                          onClick={() => { setZoomImage(imgUrl); setZoomTitle('Guardian Aadhaar'); }}
-                        />
-                      ) : (
-                        <div style={{ height: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)' }}>
-                          <span>No Document Uploaded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* PAN Card */}
               {(() => {
@@ -828,6 +807,37 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 </div>
 
                 <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '12px', marginTop: '8px' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '700', display: 'block', marginBottom: '8px' }}>GUARDIAN DETAILS</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.7rem' }}>Name</span>
+                      <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{ins.guardian || ins.guardian_name || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.7rem' }}>Relation</span>
+                      <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{ins.relation || ins.guardian_relation || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.7rem' }}>Aadhaar No</span>
+                      <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{formatAadhaar(ins.guardian_aadhaar_number || ins.guardian_aadhar_no)}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.7rem' }}>Photo</span>
+                      {ins.guardian_aadhaar_img || ins.guardian_aadhar_photo ? (
+                        <button 
+                          onClick={() => { setZoomImage(getImageUrl(ins.guardian_aadhaar_img || ins.guardian_aadhar_photo)); setZoomTitle('Guardian Aadhaar'); }}
+                          style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary)', fontWeight: '600', textDecoration: 'underline', cursor: 'pointer', textAlign: 'left', fontSize: '0.75rem' }}
+                        >
+                          View Photo
+                        </button>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.75rem' }}>No Photo</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '12px', marginTop: '8px' }}>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: '700', display: 'block', marginBottom: '8px' }}>DOCUMENTS & ACTIONS</span>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                     <button 
@@ -921,7 +931,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Aadhaar No:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar || '—'}</span>
+                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{formatAadhaar(member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>PAN Number:</span>
@@ -1046,14 +1056,17 @@ export default function MemberProfilePage({ params: paramsPromise }) {
           <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '380px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ fontSize: '2.2rem', textAlign: 'center', marginBottom: '10px' }}>⚠️</div>
             <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>
-              {member.status === 1 ? 'Suspend Member' : 'Reactivate Member'}
+              {member.account_status === 1 ? 'Suspend Member' : (member.account_status === 0 ? 'Approve Member' : 'Reactivate Member')}
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '22px', textAlign: 'center' }}>
-              Are you sure you want to {member.status === 1 ? 'suspend' : 'reactivate'} this member's access?
+            <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '22px', textAlign: 'center', lineHeight: '1.4' }}>
+              Are you sure you want to {member.account_status === 1 ? 'suspend' : (member.account_status === 0 ? 'approve' : 'reactivate')} this member?
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setConfirmSuspend(false)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.82rem' }}>Cancel</button>
-              <button onClick={handleToggleSuspend} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.82rem' }}>Confirm</button>
+              <button onClick={handleToggleSuspend} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', background: member.account_status === 1 ? '#eab308' : '#22c55e', color: 'white', boxShadow: 'none', border: 'none', fontSize: '0.82rem' }}
+                onMouseEnter={e => e.currentTarget.style.background = member.account_status === 1 ? '#ca8a04' : '#16a34a'}
+                onMouseLeave={e => e.currentTarget.style.background = member.account_status === 1 ? '#eab308' : '#22c55e'}
+              >{member.account_status === 1 ? 'Suspend Member' : (member.account_status === 0 ? 'Approve Member' : 'Reactivate Member')}</button>
             </div>
           </div>
         </div>
@@ -1084,7 +1097,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
       {showAssignModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setShowAssignModal(false)} />
-          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontWeight: '800', fontSize: '1.2rem', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Heart size={20} color="var(--primary)" />
               Assign New Insurance
@@ -1160,7 +1173,29 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Remaining (₹)</label>
-                  <input type="number" min="0" value={assignForm.remaining_amount} onChange={e => setAssignForm({ ...assignForm, remaining_amount: e.target.value })} className="premium-input" style={{ width: '100%', backgroundColor: '#f8fafc' }} />
+                  <input type="number" min="0" value={assignForm.remaining_amount} onChange={e => setAssignForm({ ...assignForm, remaining_amount: e.target.value })} className="premium-input" style={{ width: '100%' }} />
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px' }}>Guardian Details</h4>
+                <div className="grid-r-2" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Guardian Name</label>
+                    <input type="text" value={assignForm.guardian_name} onChange={e => setAssignForm({ ...assignForm, guardian_name: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="Guardian Name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Relation</label>
+                    <input type="text" value={assignForm.guardian_relation} onChange={e => setAssignForm({ ...assignForm, guardian_relation: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="E.g. Father, Mother" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar No</label>
+                    <input type="text" value={assignForm.guardian_aadhar_no} onChange={e => setAssignForm({ ...assignForm, guardian_aadhar_no: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="12-digit Aadhaar" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar Photo</label>
+                    <input type="file" accept="image/*" onChange={e => setAssignForm({ ...assignForm, guardian_aadhar_photo: e.target.files[0] })} className="premium-input" style={{ width: '100%', padding: '6px' }} />
+                  </div>
                 </div>
               </div>
 
@@ -1178,7 +1213,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
       {/* Edit Joining Fee Modal */}
       {showEditJoiningModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div className="premium-card" style={{ maxWidth: '400px', width: '100%', padding: '24px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="premium-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Edit size={18} color="var(--primary)" /> Edit Joining Fee
             </h3>
@@ -1212,6 +1247,28 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Joining Date</label>
                   <input type="date" required value={editJoiningForm.joining_date} onChange={e => setEditJoiningForm({ ...editJoiningForm, joining_date: e.target.value })} className="premium-input" style={{ width: '100%' }} />
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: '700', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '10px' }}>Guardian Details</h4>
+                <div className="grid-r-2" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Guardian Name</label>
+                    <input type="text" value={editJoiningForm.guardian_name} onChange={e => setEditJoiningForm({ ...editJoiningForm, guardian_name: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="Guardian Name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Relation</label>
+                    <input type="text" value={editJoiningForm.guardian_relation} onChange={e => setEditJoiningForm({ ...editJoiningForm, guardian_relation: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="E.g. Father, Mother" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar No</label>
+                    <input type="text" value={editJoiningForm.guardian_aadhar_no} onChange={e => setEditJoiningForm({ ...editJoiningForm, guardian_aadhar_no: e.target.value })} className="premium-input" style={{ width: '100%' }} placeholder="12-digit Aadhaar" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar Photo</label>
+                    <input type="file" accept="image/*" onChange={e => setEditJoiningForm({ ...editJoiningForm, guardian_aadhar_photo: e.target.files[0] })} className="premium-input" style={{ width: '100%', padding: '6px' }} />
+                  </div>
                 </div>
               </div>
 

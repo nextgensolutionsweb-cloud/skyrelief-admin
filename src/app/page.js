@@ -43,9 +43,13 @@ export default function Dashboard() {
   const [memberTrends, setMemberTrends] = useState([]);
   const [trendTimeframe, setTrendTimeframe] = useState('monthly');
   const [trendPlanId, setTrendPlanId] = useState('');
+  const [trendStartDate, setTrendStartDate] = useState('');
+  const [trendEndDate, setTrendEndDate] = useState('');
   
   const [dynamicAgeStats, setDynamicAgeStats] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [trendAgentId, setTrendAgentId] = useState('');
+  const [ageAgentId, setAgeAgentId] = useState('');
   
   const [financialTrends, setFinancialTrends] = useState([]);
   const [financialTimeframe, setFinancialTimeframe] = useState('monthly');
@@ -69,10 +73,9 @@ export default function Dashboard() {
         }
         if (planStatsRes.s === 1 && Array.isArray(planStatsRes.r)) {
           setPlanStats(planStatsRes.r);
-          // Set first plan as default for dynamic age stats if available
           if (planStatsRes.r.length > 0) {
             if (!selectedPlanId) setSelectedPlanId(planStatsRes.r[0].plan_id);
-            if (!trendPlanId) setTrendPlanId(planStatsRes.r[0].plan_id);
+            // trendPlanId remains '' by default for "All Plans"
           }
         }
         if (recentRes.s === 1 && recentRes.r) {
@@ -113,9 +116,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function fetchMemberTrends() {
-      if (!trendPlanId) return;
       try {
-        const res = await apiRequest(`/api/dashboard/member-trends?timeframe=${trendTimeframe}&plan_id=${trendPlanId}`);
+        let url = `/api/dashboard/member-trends?timeframe=${trendTimeframe}`;
+        if (trendPlanId) url += `&plan_id=${trendPlanId}`;
+        
+        if (trendAgentId) url += `&agent_id=${trendAgentId}`;
+        
+        if (trendTimeframe === 'custom') {
+          if (!trendStartDate || !trendEndDate) return;
+          url += `&start_date=${trendStartDate}&end_date=${trendEndDate}`;
+        }
+        
+        const res = await apiRequest(url);
         if (res.s === 1 && Array.isArray(res.r)) {
           setMemberTrends(res.r);
         }
@@ -124,13 +136,15 @@ export default function Dashboard() {
       }
     }
     fetchMemberTrends();
-  }, [trendTimeframe, trendPlanId]);
+  }, [trendTimeframe, trendPlanId, trendAgentId, trendStartDate, trendEndDate]);
 
   useEffect(() => {
     async function fetchAgeStats() {
       if (!selectedPlanId) return;
       try {
-        const res = await apiRequest(`/api/dashboard/dynamic-age-stats?plan_id=${selectedPlanId}`);
+        let url = `/api/dashboard/dynamic-age-stats?plan_id=${selectedPlanId}`;
+        if (ageAgentId) url += `&agent_id=${ageAgentId}`;
+        const res = await apiRequest(url);
         if (res.s === 1 && Array.isArray(res.r)) {
           setDynamicAgeStats(res.r);
         }
@@ -139,7 +153,7 @@ export default function Dashboard() {
       }
     }
     fetchAgeStats();
-  }, [selectedPlanId]);
+  }, [selectedPlanId, ageAgentId]);
 
   const getInitials = (firstName, lastName) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || 'AG';
@@ -226,54 +240,94 @@ export default function Dashboard() {
         {/* 1. Member Onboarding Trends */}
         <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Member Onboarding Trends</h2>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Member Trends</h2>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}>
               <select 
                 value={trendPlanId} 
                 onChange={e => setTrendPlanId(e.target.value)}
                 style={{
-                  padding: '6px 12px',
+                  padding: '4px 8px',
                   fontSize: '0.75rem',
                   fontWeight: '600',
                   borderRadius: '6px',
                   border: '1px solid #cbd5e1',
                   color: '#334155',
                   outline: 'none',
-                  background: '#f8fafc'
+                  background: '#f8fafc',
+                  flexShrink: 0
                 }}
               >
+                <option value="">All Plans</option>
                 {planStats.map(p => (
                   <option key={`trend-${p.plan_id}`} value={p.plan_id}>{p.plan_name}</option>
                 ))}
               </select>
-              <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
-                {['weekly', 'monthly', 'yearly'].map(tf => (
-                  <button 
-                    key={tf}
-                    onClick={() => setTrendTimeframe(tf)}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      background: trendTimeframe === tf ? '#fff' : 'transparent',
-                      color: trendTimeframe === tf ? '#0ea5e9' : '#64748b',
-                      boxShadow: trendTimeframe === tf ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                      textTransform: 'capitalize',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {tf}
-                  </button>
+              <select 
+                value={trendAgentId} 
+                onChange={e => setTrendAgentId(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc',
+                  flexShrink: 0
+                }}
+              >
+                <option value="">All Agents</option>
+                {allAgents.map(a => (
+                  <option key={`trend-agent-${a.id}`} value={a.id}>{a.first_name} {a.last_name}</option>
                 ))}
-              </div>
+              </select>
+              <select
+                value={trendTimeframe}
+                onChange={e => setTrendTimeframe(e.target.value)}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc',
+                  flexShrink: 0
+                }}
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="custom">Custom</option>
+              </select>
+              {trendTimeframe === 'custom' && (
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0 }}>
+                  <input 
+                    type="date" 
+                    value={trendStartDate}
+                    onChange={(e) => setTrendStartDate(e.target.value)}
+                    style={{
+                      padding: '4px 6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', background: '#f8fafc', color: '#334155', maxWidth: '115px'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', flexShrink: 0 }}>to</span>
+                  <input 
+                    type="date" 
+                    value={trendEndDate}
+                    onChange={(e) => setTrendEndDate(e.target.value)}
+                    style={{
+                      padding: '4px 6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', background: '#f8fafc', color: '#334155', maxWidth: '115px'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
           <div style={{ width: '100%', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={memberTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={memberTrends} margin={{ top: 35, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
@@ -295,24 +349,45 @@ export default function Dashboard() {
         <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Plan Age Rules Analysis</h2>
-            <select 
-              value={selectedPlanId} 
-              onChange={e => setSelectedPlanId(e.target.value)}
-              style={{
-                padding: '6px 12px',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                color: '#334155',
-                outline: 'none',
-                background: '#f8fafc'
-              }}
-            >
-              {planStats.map(p => (
-                <option key={p.plan_id} value={p.plan_id}>{p.plan_name}</option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <select 
+                value={selectedPlanId} 
+                onChange={e => setSelectedPlanId(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc'
+                }}
+              >
+                {planStats.map(p => (
+                  <option key={p.plan_id} value={p.plan_id}>{p.plan_name}</option>
+                ))}
+              </select>
+              <select 
+                value={ageAgentId} 
+                onChange={e => setAgeAgentId(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc'
+                }}
+              >
+                <option value="">All Agents</option>
+                {allAgents.map(a => (
+                  <option key={`age-agent-${a.id}`} value={a.id}>{a.first_name} {a.last_name}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div style={{ width: '100%', height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {dynamicAgeStats.length > 0 ? (
@@ -372,34 +447,29 @@ export default function Dashboard() {
                 <option key={`fin-agent-${a.id}`} value={a.id}>{a.first_name} {a.last_name}</option>
               ))}
             </select>
-            <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '8px', padding: '4px' }}>
-              {['weekly', 'monthly', 'yearly'].map(tf => (
-                <button 
-                  key={tf}
-                  onClick={() => setFinancialTimeframe(tf)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '0.75rem',
-                    fontWeight: '700',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    background: financialTimeframe === tf ? '#fff' : 'transparent',
-                    color: financialTimeframe === tf ? '#10b981' : '#64748b',
-                    boxShadow: financialTimeframe === tf ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    textTransform: 'capitalize',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {tf}
-                </button>
-              ))}
-            </div>
+            <select
+                value={financialTimeframe}
+                onChange={e => setFinancialTimeframe(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  outline: 'none',
+                  background: '#f8fafc'
+                }}
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
           </div>
         </div>
         <div style={{ width: '100%', height: '350px' }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={financialTrends} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+            <BarChart data={financialTrends} margin={{ top: 35, right: 10, left: 10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(val) => `₹${(val/1000).toFixed(0)}k`} />
@@ -421,7 +491,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Plan Wise Overview ──────────────────────────────── */}
-      <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', overflow: 'hidden', marginBottom: '20px' }}>
+      {/* <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e0f2fe', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a' }}>Plan Wise Overview</span>
         </div>
@@ -460,7 +530,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
 
       {/* ── Recent Members, Agents, Marriages ──────────────────────────── */}
       <div className="grid-r-3">

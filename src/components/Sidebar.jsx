@@ -14,7 +14,7 @@ const mainNav = [
   { name: 'Insurance Management', path: '/insurance', icon: ShieldCheck },
   { name: 'Agents', path: '/agents', icon: UserCircle },
   { name: 'Members', path: '/members', icon: Users },
-  { name: 'Marriage Programs', path: '/marriages', icon: Heart },
+  { name: 'Programs', path: '/marriages', icon: Heart },
   { name: 'Payment Campaigns', path: '/payments', icon: Wallet },
 ];
 

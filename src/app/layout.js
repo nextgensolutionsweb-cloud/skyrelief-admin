@@ -10,13 +10,12 @@ const font = Inter({
 export const metadata = {
   title: "SkyRelief Admin ERP",
   description: "Admin ERP for SkyRelief Foundation",
+  icons: {
+    icon: '/favicon-v2.png'
+  },
   robots: {
     index: false,
     follow: false,
-  },
-  icons: {
-    icon: '/favicon-v2.png',
-    shortcut: '/favicon-v2.png',
   }
 };
 

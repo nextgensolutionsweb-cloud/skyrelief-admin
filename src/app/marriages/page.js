@@ -39,6 +39,7 @@ export default function MarriagesListPage() {
 
   // Modal States
   const [deleteId, setDeleteId] = useState(null);
+  const [deleteEventType, setDeleteEventType] = useState(null);
   const [deleting, setDeleting] = useState(false);
   
   const [settleItem, setSettleItem] = useState(null);
@@ -218,34 +219,38 @@ export default function MarriagesListPage() {
 
   // Delete Confirm
   const handleDeleteConfirm = async () => {
-    setDeleting(true);
+    if (!deleteId || !deleteEventType) return;
     try {
+      setDeleting(true);
+      const endpoint = deleteEventType === 'death' ? '/api/death/delete' : '/api/marriage/delete';
       let res;
       try {
-        res = await apiRequest('/api/marriage/delete', {
+        res = await apiRequest(endpoint, {
           method: 'POST',
           body: JSON.stringify({ id: deleteId })
         });
       } catch (err) {
+        // Fallback to update status API if delete doesn't exist
         console.warn('Delete endpoint failed, trying status endpoint fallback...');
         const formData = new FormData();
         formData.append('id', deleteId);
         formData.append('status', -1); // Status -1 is Deleted
-        res = await apiRequest('/api/marriage/status', {
+        res = await apiRequest(deleteEventType === 'death' ? '/api/death/update' : '/api/marriage/update', {
           method: 'POST',
           body: formData
         });
       }
 
-      if (res.s === 1) {
-        showToast('Marriage record deleted successfully', 'success');
+      if (res && res.s === 1) {
+        showToast('Event deleted successfully', 'success');
         setDeleteId(null);
+        setDeleteEventType(null);
         fetchMarriages();
       } else {
         showToast(res.m || 'Failed to delete marriage record', 'error');
       }
     } catch (err) {
-      console.error('Error deleting marriage:', err);
+      console.error('Error deleting event:', err);
     } finally {
       setDeleting(false);
     }
@@ -344,7 +349,7 @@ export default function MarriagesListPage() {
           <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px' }}>Program dashboard & application processing</p>
         </div>
         <button className="btn-primary" onClick={() => router.push('/marriages/form')}>
-          <Plus size={15} strokeWidth={2.5} /> New Marriage Case
+          <Plus size={15} strokeWidth={2.5} /> New Case
         </button>
       </div>
 
@@ -508,7 +513,7 @@ export default function MarriagesListPage() {
 
             {/* Date Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Marriage Date:</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Event Date:</span>
               <input
                 type="date"
                 value={dateFilter}
@@ -531,7 +536,7 @@ export default function MarriagesListPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
-                  {['MEMBER', 'PLAN', 'AGENT', 'MARRIAGE DATE', 'INVITATION CARD', 'AMOUNT GIVEN', 'STATUS', 'ACTIONS'].map(h => (
+                  {['MEMBER', 'PLAN', 'AGENT', 'EVENT DATE', 'DOCUMENTS', 'AMOUNT GIVEN', 'STATUS', 'ACTIONS'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                   ))}
                 </tr>
@@ -544,7 +549,7 @@ export default function MarriagesListPage() {
                   const agentName = getAgentName(item);
                   const mDate = formatMarriageDate(item.marriage_date || item.date);
                   const statusInfo = statusStyle[item.status] || { bg: '#f1f5f9', color: '#475569', label: item.status || 'Pending' };
-                  const cardUrl = getInvitationCardUrl(item.invitation_card);
+                  const cardUrl = getInvitationCardUrl(item.invitation_card || item.photo || item.photo_url);
                   const amount = item.amount_given ? "₹" + Number(item.amount_given).toLocaleString() : "-";
 
                   return (
@@ -644,7 +649,7 @@ export default function MarriagesListPage() {
 
                               <button
                                 title="Delete Case"
-                                onClick={() => setDeleteId(item.id)}
+                                onClick={() => { setDeleteId(item.id); setDeleteEventType(item.event_type); }}
                                 style={{ color: '#ef4444', cursor: 'pointer', padding: '5px', borderRadius: '6px', border: 'none', background: 'none' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
@@ -809,28 +814,24 @@ export default function MarriagesListPage() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }} onClick={() => setDeleteId(null)} />
-          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '380px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
-            <div style={{ fontSize: '2.2rem', textAlign: 'center', marginBottom: '10px' }}>⚠️</div>
-            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>Delete Marriage Record</div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '22px', lineHeight: '1.4' }}>
-              <p style={{ marginBottom: '8px', textAlign: 'center' }}>Are you sure you want to delete this marriage record?</p>
-              <p style={{ fontWeight: '700', color: '#334155', marginBottom: '6px' }}>This action will:</p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <li>Soft delete marriage record</li>
-                <li>Preserve payment history</li>
-                <li>Preserve member history</li>
+      {deleteId && deleteEventType && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)' }} onClick={() => { setDeleteId(null); setDeleteEventType(null); }} />
+          
+          <div style={{ background: '#fff', borderRadius: '20px', width: '90%', maxWidth: '380px', padding: '24px', position: 'relative', zIndex: 1, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>Delete Event Record</div>
+            <div style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '24px' }}>
+              <p style={{ marginBottom: '8px', textAlign: 'center' }}>Are you sure you want to delete this event record?</p>
+              <ul style={{ listStyle: 'disc', paddingLeft: '20px', fontSize: '0.8rem', color: '#ef4444' }}>
+                <li>Remove from reporting</li>
+                <li>Soft delete event record</li>
               </ul>
             </div>
+            
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setDeleteId(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.82rem' }}>Cancel</button>
-              <button onClick={handleDeleteConfirm} disabled={deleting} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', background: '#ef4444', color: 'white', boxShadow: 'none', border: 'none', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
-                onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
-              >
-                {deleting ? 'Deleting...' : 'Delete Marriage'}
+              <button onClick={() => { setDeleteId(null); setDeleteEventType(null); }} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.82rem' }}>Cancel</button>
+              <button onClick={handleDeleteConfirm} disabled={deleting} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', background: '#ef4444', color: 'white', boxShadow: 'none', border: 'none', fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                {deleting ? 'Deleting...' : 'Delete Event'}
               </button>
             </div>
           </div>

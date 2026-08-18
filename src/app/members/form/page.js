@@ -414,6 +414,19 @@ export default function MemberFormPage() {
       showToast('Please select an Agent.', 'error');
       return false;
     }
+
+    if (form.plan_id) {
+      const selectedPlan = plans.find(p => String(p.id) === String(form.plan_id));
+      if (selectedPlan && selectedPlan.age_rules && selectedPlan.age_rules.length > 0) {
+        const memAge = parseInt(form.age || 0);
+        const isValidAge = selectedPlan.age_rules.some(r => memAge >= r.min_age && memAge <= r.max_age && r.status === 1);
+        if (!isValidAge) {
+          showToast('Member age does not meet the insurance plan age rules.', 'error');
+          return false;
+        }
+      }
+    }
+
     return true;
   };
 
