@@ -55,7 +55,7 @@ export async function apiRequest(endpoint, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const fetchOptions = {
+  const fetchOptions = { cache: 'no-store',
     ...options,
     headers,
   };

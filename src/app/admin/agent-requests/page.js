@@ -18,6 +18,7 @@ export default function AgentRequestsPage() {
   // Reject Modal State
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectData, setRejectData] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
