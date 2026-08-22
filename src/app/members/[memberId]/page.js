@@ -390,7 +390,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Member Not Found</h2>
         <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '20px' }}>The member you are looking for does not exist or has been deleted.</p>
-        <button onClick={() => router.push('/members')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Members</span>
         </button>
       </div>
@@ -404,10 +404,11 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const fullName = member.full_name || (firstName !== '—' ? `${firstName} ${lastName !== '—' ? lastName : ''}` : '') || 'Member';
   const initials = `${firstName !== '—' && firstName ? firstName[0] : ''}${lastName !== '—' && lastName ? lastName[0] : ''}`.toUpperCase() || 'MB';
   
-  const isSuspended = member.account_status === 2;
-  const displayStatus = isSuspended ? 'Suspended' : (member.insurance_status_text || 'Pending');
+  const isRejected = String(member.insurance_status) === '2';
+  const isSuspended = member.account_status === 2 && !isRejected;
+  const displayStatus = isRejected ? 'Rejected' : isSuspended ? 'Suspended' : (member.insurance_status_text || 'Pending');
   const statusClass = 
-    isSuspended ? 'inactive' :
+    (isSuspended || isRejected) ? 'inactive' :
     displayStatus === 'Active' ? 'active' : 
     displayStatus === 'Married' ? 'active' : 
     displayStatus === 'Removed' ? 'inactive' : 'pending';
@@ -457,7 +458,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     <div>
       {/* Back Button */}
       <button 
-        onClick={() => router.push('/members')} 
+        onClick={() => router.back()} 
         className="btn-secondary"
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px' }}
       >
@@ -583,10 +584,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{formatAadhaar(member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar)}</span>
               </div>
               
-               <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Administrative Notes:</span>
-                <p style={{ color: 'var(--text-dark)', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.78rem', lineHeight: 1.4 }}>{member.notes || 'No notes available.'}</p>
-              </div>
+
             </div>
           </div>
 
@@ -688,53 +686,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               })()}
 
 
-              {/* PAN Card */}
-              {(() => {
-                const imgUrl = panDocUrl || null;
-                return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '190px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>PAN Card</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt="PAN Image"
-                          style={{ width: '100%', height: '110px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
-                          onClick={() => { setZoomImage(imgUrl); setZoomTitle('PAN Card Image'); }}
-                        />
-                      ) : (
-                        <div style={{ height: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)' }}>
-                          <span>No Document Uploaded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Signature */}
-              {(() => {
-                const imgUrl = signatureUrl || null;
-                return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '190px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Signature</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt="Member Signature"
-                          style={{ width: '100%', height: '110px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
-                          onClick={() => { setZoomImage(imgUrl); setZoomTitle('Member Signature'); }}
-                        />
-                      ) : (
-                        <div style={{ height: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)' }}>
-                          <span>No Signature Uploaded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+          
             </div>
           </div>
 

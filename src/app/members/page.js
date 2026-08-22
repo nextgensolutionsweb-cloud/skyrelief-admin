@@ -8,7 +8,7 @@ import { ConfirmModal } from '@/components/Modal';
 const insuranceStatusStyle = {
   0: { bg: '#fef9c3', color: '#854d0e', label: 'Pending' },
   1: { bg: '#dcfce7', color: '#15803d', label: 'Active' },
-  2: { bg: '#e0e7ff', color: '#4338ca', label: 'Married' },
+  2: { bg: '#fee2e2', color: '#991b1b', label: 'Rejected' },
   3: { bg: '#f3e8ff', color: '#7e22ce', label: 'Invoice Generated' },
   '-1': { bg: '#f1f5f9', color: '#475569', label: 'Removed' },
 };
@@ -105,6 +105,9 @@ export default function MembersListPage() {
         reqInsuranceStatus = '1';
       } else if (mainFilter === 'suspended') {
         reqAccountStatus = '2';
+        reqInsuranceStatus = '!2';
+      } else if (mainFilter === 'rejected') {
+        reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
         reqMarriageStatus = '2';
       } else if (mainFilter === 'upcoming') {
@@ -310,6 +313,9 @@ export default function MembersListPage() {
         reqInsuranceStatus = '1';
       } else if (mainFilter === 'suspended') {
         reqAccountStatus = '2';
+        reqInsuranceStatus = '!2';
+      } else if (mainFilter === 'rejected') {
+        reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
         reqMarriageStatus = '2';
       } else if (mainFilter === 'upcoming') {
@@ -439,7 +445,8 @@ export default function MembersListPage() {
                   { label: 'Active', val: 'active' },
                   { label: 'Married', val: 'married' },
                   { label: 'Upcoming', val: 'upcoming' },
-                  { label: 'Suspended', val: 'suspended' }
+                  { label: 'Suspended', val: 'suspended' },
+                  { label: 'Rejected', val: 'rejected' }
                 ].map(t => (
                   <button
                     key={t.val}
@@ -655,8 +662,11 @@ export default function MembersListPage() {
                           <div>
                             <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {name}
-                              {item.account_status === 2 && insStatusInfo.label !== 'Deceased' && (
+                              {item.account_status === 2 && item.insurance_status !== 2 && insStatusInfo.label !== 'Deceased' && (
                                 <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem' }}>Suspended</span>
+                              )}
+                              {String(item.insurance_status) === '2' && insStatusInfo.label !== 'Deceased' && (
+                                <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem' }}>Rejected</span>
                               )}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>Code: {memberCode}</div>

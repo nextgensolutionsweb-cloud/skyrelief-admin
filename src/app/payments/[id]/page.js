@@ -218,7 +218,7 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
       <div style={{ padding: '40px', textAlign: 'center', background: '#fff', borderRadius: '16px', border: '1.5px solid #bee3f8', maxWidth: '600px', margin: '40px auto' }}>
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Campaign Not Found</h2>
-        <button onClick={() => router.push('/payments')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Campaigns</span>
         </button>
       </div>
@@ -242,7 +242,7 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button onClick={() => router.push('/payments')} className="btn-secondary no-print" style={{ padding: '8px' }}>
+          <button onClick={() => router.back()} className="btn-secondary no-print" style={{ padding: '8px' }}>
             <ArrowLeft size={18} />
           </button>
           <div>

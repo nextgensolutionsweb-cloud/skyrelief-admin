@@ -252,6 +252,7 @@ export default function MemberFormPage() {
               pan_img: data.pan_img || panDoc?.file_url || '',
               aadhaar_front: data.aadhaar_front || aaFrontDoc?.file_url || '',
               aadhaar_back: data.aadhaar_back || aaBackDoc?.file_url || '',
+              guardian_aadhaar_img: data.guardian_aadhaar_img || details.guardian_aadhaar_img || '',
               signature: data.signature || '',
               agent_id: String(data.agent_id || details.agent_id || ''),
             });
@@ -546,7 +547,7 @@ export default function MemberFormPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <button
-          onClick={() => router.push(isEditMode ? `/members/${memberId}` : '/members')}
+          onClick={() => router.back()}
           className="btn-secondary"
           style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
         >
@@ -629,6 +630,10 @@ export default function MemberFormPage() {
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Age (Years)</label>
                   <input type="text" value={form.age} readOnly className="premium-input" placeholder="28" style={{ width: '100%', background: '#f1f5f9', cursor: 'not-allowed' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Alternate Mobile</label>
+                  <input type="text" value={form.alt_mobile} onChange={e => handleInputChange('alt_mobile', e.target.value)} className="premium-input" placeholder="9876543212" style={{ width: '100%' }} />
                 </div>
               </div>
 
@@ -845,44 +850,6 @@ export default function MemberFormPage() {
                 Select Aadhaar
               </label>
             </div>
-
-            {/* PAN Image */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>PAN Card Image</span>
-              <div style={{ width: '100%', height: '110px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.pan_img || form.pan_img) ? (
-                  <img src={previews.pan_img || getImageUrl(form.pan_img)} alt="PAN card" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={20} style={{ margin: '0 auto 4px' }} />
-                    <span style={{ fontSize: '0.65rem' }}>No image</span>
-                  </div>
-                )}
-              </div>
-              <input type="file" id="pan-upload" accept="image/*" onChange={e => handleFileChange(e, 'pan_img')} style={{ display: 'none' }} />
-              <label htmlFor="pan-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Select PAN Card
-              </label>
-            </div>
-
-            {/* Signature Image */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Signature Image</span>
-              <div style={{ width: '100%', height: '110px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.signature || form.signature) ? (
-                  <img src={previews.signature || getImageUrl(form.signature)} alt="Signature" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={20} style={{ margin: '0 auto 4px' }} />
-                    <span style={{ fontSize: '0.65rem' }}>No signature image</span>
-                  </div>
-                )}
-              </div>
-              <input type="file" id="signature-upload" accept="image/*" onChange={e => handleFileChange(e, 'signature')} style={{ display: 'none' }} />
-              <label htmlFor="signature-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Select Signature
-              </label>
-            </div>
           </div>
         </div>
 
@@ -919,15 +886,6 @@ export default function MemberFormPage() {
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Age (Years)</label>
                 <input type="text" value={form.age} readOnly className="premium-input" placeholder="Calculated from DOB" style={{ width: '100%', backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} />
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Occupation</label>
-                <input type="text" value={form.occupation} onChange={e => handleInputChange('occupation', e.target.value)} className="premium-input" placeholder="Private Job" style={{ width: '100%' }} />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Administrative Notes</label>
-              <textarea value={form.notes} onChange={e => handleInputChange('notes', e.target.value)} className="premium-input" placeholder="Notes about member..." rows={3} style={{ width: '100%', resize: 'none', fontFamily: 'inherit' }} />
             </div>
           </div>
         </div>
@@ -936,7 +894,7 @@ export default function MemberFormPage() {
         <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
           <button
             type="button"
-            onClick={() => router.push(isEditMode ? `/members/${memberId}` : '/members')}
+            onClick={() => router.back()}
             className="btn-secondary"
             style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
           >
