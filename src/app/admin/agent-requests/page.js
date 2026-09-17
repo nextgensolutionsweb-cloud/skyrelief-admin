@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History, Mic, Square, Play, Trash2 } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 import Modal from '@/components/Modal';
 
@@ -10,7 +10,7 @@ const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.o
 export default function AgentRequestsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
-  
+
   const [requests, setRequests] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,93 @@ export default function AgentRequestsPage() {
   const [processing, setProcessing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recognitionRef = useRef(null);
+  const [speechLang, setSpeechLang] = useState('gu-IN');
+  const [interimText, setInterimText] = useState('');
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+
+      // Start Speech Recognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true; // Use interim for live feedback
+        recognition.lang = speechLang;
+
+        recognition.onresult = (event) => {
+          let finalTranscript = '';
+          let currentInterim = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + ' ';
+            } else {
+              currentInterim += event.results[i][0].transcript;
+            }
+          }
+
+          setInterimText(currentInterim);
+
+          if (finalTranscript.trim()) {
+            setRejectReason(prev => {
+              const current = prev.trim();
+              return current ? current + ' ' + finalTranscript.trim() : finalTranscript.trim();
+            });
+          }
+        };
+
+        // Prevent it from stopping automatically if user pauses for a moment
+        recognition.onend = () => {
+          if (recognitionRef.current) {
+            try { recognitionRef.current.start(); } catch (e) { }
+          }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+    } catch (err) {
+      showToast('Microphone access denied or unavailable', 'error');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null; // Prevent restart loop
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      setInterimText('');
+    }
+  };
 
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [memberDetails, setMemberDetails] = useState(null);
@@ -46,11 +133,11 @@ export default function AgentRequestsPage() {
         const dataArr = Array.isArray(res.r) ? res.r : [res.r];
         let relevantData = dataArr[0];
         if (req.type === 'plan') {
-           const match = dataArr.find(d => d.insurance_id === req.request_id);
-           if (match) relevantData = match;
+          const match = dataArr.find(d => d.insurance_id === req.request_id);
+          if (match) relevantData = match;
         } else {
-           const match = dataArr.find(d => d.insurance_status === 0);
-           if (match) relevantData = match;
+          const match = dataArr.find(d => d.insurance_status === 0);
+          if (match) relevantData = match;
         }
         setMemberDetails(relevantData);
       }
@@ -75,9 +162,9 @@ export default function AgentRequestsPage() {
     const url = path.startsWith('http') ? path : `${BASE_API_URL}${path}`;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-        <img 
-          src={url} 
-          alt={title} 
+        <img
+          src={url}
+          alt={title}
           onClick={() => { setZoomImage(url); setZoomTitle(title); }}
           style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e2e8f0', background: '#f8fafc' }}
           onError={(e) => e.target.style.display = 'none'}
@@ -85,6 +172,57 @@ export default function AgentRequestsPage() {
         <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>{title}</span>
       </div>
     );
+  };
+
+  const [bankSettings, setBankSettings] = useState({
+    bank_name: 'State Bank of India',
+    bank_upi_id: 'skyrelief@sbi',
+    bank_account_no: '',
+    bank_ifsc: '',
+    default_amount: '1000'
+  });
+  const [savingBankSettings, setSavingBankSettings] = useState(false);
+
+  useEffect(() => {
+    fetchBankSettings();
+  }, []);
+
+  const fetchBankSettings = async () => {
+    try {
+      const res = await apiRequest('/api/admin/agent-requests/bank-settings');
+      if (res && res.s === 1 && res.r) {
+        setBankSettings({
+          bank_name: res.r.bank_name || 'State Bank of India',
+          bank_upi_id: res.r.bank_upi_id || 'skyrelief@sbi',
+          bank_account_no: res.r.bank_account_no || '',
+          bank_ifsc: res.r.bank_ifsc || '',
+          default_amount: res.r.default_amount || '1000'
+        });
+      }
+    } catch (e) {
+      console.error('Failed to fetch bank settings', e);
+    }
+  };
+
+  const handleSaveBankSettings = async (e) => {
+    e.preventDefault();
+    setSavingBankSettings(true);
+    try {
+      const res = await apiRequest('/api/admin/agent-requests/bank-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bankSettings)
+      });
+      if (res && res.s === 1) {
+        showToast('Bank QR & UPI Settings updated successfully!', 'success');
+      } else {
+        showToast(res?.m || 'Failed to update bank settings', 'error');
+      }
+    } catch (err) {
+      showToast('Error saving bank settings', 'error');
+    } finally {
+      setSavingBankSettings(false);
+    }
   };
 
   useEffect(() => {
@@ -145,6 +283,8 @@ export default function AgentRequestsPage() {
   const initiateReject = (id, type) => {
     setRejectData({ request_id: id, type });
     setRejectReason('');
+    setAudioBlob(null);
+    setIsRecording(false);
     setShowRejectModal(true);
   };
 
@@ -155,9 +295,17 @@ export default function AgentRequestsPage() {
     }
     setProcessing(true);
     try {
+      const formData = new FormData();
+      formData.append('request_id', rejectData.request_id);
+      formData.append('type', rejectData.type);
+      formData.append('reason', rejectReason);
+      if (audioBlob) {
+        formData.append('voice_note', audioBlob, 'voice_note.webm');
+      }
+
       const res = await apiRequest('/api/admin/agent-requests/reject', {
         method: 'POST',
-        body: JSON.stringify({ request_id: rejectData.request_id, type: rejectData.type, reason: rejectReason }),
+        body: formData,
       });
       if (res.s === 1) {
         showToast('Request rejected and removed successfully', 'success');
@@ -183,37 +331,38 @@ export default function AgentRequestsPage() {
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '8px' }}>Agent Requests</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '4px' }}>Agent Requests Manager</h1>
           <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-            Review pending registrations or view rejected history.
+            Review agent requests for new member registrations and insurance plan assignments.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px', background: '#e2e8f0', padding: '4px', borderRadius: '8px' }}>
-          <button
-            onClick={() => setActiveTab('pending')}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
-              background: activeTab === 'pending' ? 'white' : 'transparent',
-              color: activeTab === 'pending' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'pending' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            Pending Requests
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            style={{
-              padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
-              background: activeTab === 'history' ? 'white' : 'transparent',
-              color: activeTab === 'history' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'history' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-            }}
-          >
-            Rejected History
-          </button>
-        </div>
       </div>
-      
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <button
+          onClick={() => setActiveTab('pending')}
+          style={{
+            padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+            background: activeTab === 'pending' ? 'white' : 'transparent',
+            color: activeTab === 'pending' ? '#0f172a' : '#64748b',
+            boxShadow: activeTab === 'pending' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+          }}
+        >
+          Pending Requests
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          style={{
+            padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
+            background: activeTab === 'history' ? 'white' : 'transparent',
+            color: activeTab === 'history' ? '#0f172a' : '#64748b',
+            boxShadow: activeTab === 'history' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+          }}
+        >
+          Rejected History
+        </button>
+      </div>
+
       {activeTab === 'pending' && (
         <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           {loading ? (
@@ -264,7 +413,7 @@ export default function AgentRequestsPage() {
                       </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
+                          <button
                             onClick={() => setSelectedRequest(req)}
                             title="View Profile Details"
                             style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
@@ -367,20 +516,66 @@ export default function AgentRequestsPage() {
             <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '16px', color: '#0f172a' }}>Reject Request</h2>
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>Reason for Rejection *</label>
-              <textarea 
+              <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Enter rejection reason..."
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', minHeight: '100px', resize: 'vertical', marginBottom: '12px' }}
               />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569', margin: 0 }}>Voice Note & Speech-to-Text</label>
+                <select
+                  value={speechLang}
+                  onChange={(e) => setSpeechLang(e.target.value)}
+                  style={{ fontSize: '0.8rem', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}>
+                  <option value="en-IN">English (India)</option>
+                  <option value="hi-IN">Hindi</option>
+                  <option value="gu-IN">Gujarati</option>
+                </select>
+              </div>
+
+              {interimText && (
+                <div style={{ padding: '8px 12px', background: '#fef3c7', color: '#92400e', borderRadius: '8px', fontSize: '0.85rem', marginBottom: '12px', fontStyle: 'italic' }}>
+                  {interimText}...
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                {!audioBlob ? (
+                  isRecording ? (
+                    <button
+                      onClick={stopRecording}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>
+                      <Square size={16} fill="currentColor" /> Stop Recording
+                    </button>
+                  ) : (
+                    <button
+                      onClick={startRecording}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#e0e7ff', color: '#4f46e5', border: '1px solid #c7d2fe', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>
+                      <Mic size={16} /> Record Voice Note
+                    </button>
+                  )
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                    <audio src={URL.createObjectURL(audioBlob)} controls style={{ height: '36px', flex: 1 }} />
+                    <button
+                      onClick={() => setAudioBlob(null)}
+                      title="Discard Recording"
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button 
+              <button
                 onClick={() => setShowRejectModal(false)}
                 style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={confirmReject}
                 disabled={processing}
                 style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#ef4444', color: 'white', fontWeight: '600', cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1 }}>
@@ -451,7 +646,7 @@ export default function AgentRequestsPage() {
             ) : (
               <div style={{ padding: '20px', textAlign: 'center', color: '#ef4444' }}>Could not load full details.</div>
             )}
-            
+
             <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => { router.push(`/members/${selectedRequest.member_id}`); setSelectedRequest(null); }} style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>View Full Profile</button>
               <button onClick={() => { handleApprove(selectedRequest.request_id, selectedRequest.type); setSelectedRequest(null); }} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}>Approve</button>

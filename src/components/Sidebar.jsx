@@ -16,6 +16,7 @@ const mainNav = [
   { name: 'Members', path: '/members', icon: Users },
   { name: 'Programs', path: '/marriages', icon: Heart },
   { name: 'Payment Campaigns', path: '/payments', icon: Wallet },
+  { name: 'Payment Requests & QR', path: '/admin/payment-requests', icon: CheckSquare },
 ];
 
 export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
@@ -106,8 +107,8 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
                   boxShadow: active ? '0 4px 14px rgba(99, 102, 241, 0.35)' : 'none',
                   transition: 'all 0.18s ease',
                 }}
-                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)'; }}}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)'; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; } }}
                 >
                   <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />
                   {name}
@@ -145,8 +146,8 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
                   boxShadow: active ? '0 4px 14px rgba(99, 102, 241, 0.35)' : 'none',
                   transition: 'all 0.18s ease',
                 }}
-                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)'; }}}
-                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}}
+                  onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)'; } }}
+                  onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; } }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />

@@ -14,6 +14,36 @@ const statusStyle = {
 
 const avatarColors = ['#0ea5e9', '#22c55e', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
 
+const calculateExactAge = (dobString) => {
+  if (!dobString) return '';
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return '';
+  
+  const today = new Date();
+  
+  let years = today.getFullYear() - dob.getFullYear();
+  let months = today.getMonth() - dob.getMonth();
+  let days = today.getDate() - dob.getDate();
+  
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  const parts = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
+  if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  
+  return parts.length > 0 ? parts.join(', ') : '0 days';
+};
+
 export default function AgentDetailsPage({ params: paramsPromise }) {
   const router = useRouter();
   const params = use(paramsPromise);
@@ -519,8 +549,9 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const getMemberName = (item) => {
     const details = item.member_details || {};
     const fName = details.first_name || item.first_name || '';
+    const mName = details.middle_name || item.middle_name || '';
     const lName = details.last_name || item.last_name || '';
-    return `${fName} ${lName}`.replace(/\s+/g, ' ').trim() || item.name || 'Member';
+    return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim() || item.name || 'Member';
   };
 
   const getMemberInitials = (item) => {
@@ -764,7 +795,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Age:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.age || '—'}</span>
+                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{calculateExactAge(agent.dob) || agent.age || '—'}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Occupation:</span>

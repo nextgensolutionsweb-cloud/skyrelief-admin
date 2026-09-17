@@ -113,8 +113,9 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     if (item.member) {
       const details = item.member.member_details || item.member;
       const fName = details.first_name || item.member.first_name || '';
+      const mName = details.middle_name || item.member.middle_name || '';
       const lName = details.last_name || item.member.last_name || '';
-      const fullName = `${fName} ${lName}`.trim();
+      const fullName = `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
       if (fullName) return fullName;
     }
     return item.member_name || item.name || 'N/A';
@@ -172,8 +173,8 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
   }
 
   const statusInfo = statusStyle[marriage.status] || { bg: '#f1f5f9', color: '#475569', label: marriage.status || 'Pending' };
-  const cardUrl = getImageUrl(marriage.invitation_card || marriage.invitation_card_url || marriage.card);
-  const photoUrl = getImageUrl(marriage.marriage_photo || marriage.photo_url || marriage.photo);
+  const cardUrl = getImageUrl(marriage.invitation_card || marriage.invitation_card_url || marriage.card || marriage.marriage_card || marriage.invitation_photo);
+  const photoUrl = getImageUrl(marriage.marriage_photo || marriage.photo_url || marriage.photo || marriage.marriage_image || marriage.claim_photo || marriage.claim_image || marriage.agent_uploaded_photo || marriage.uploaded_photo);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '40px' }}>
