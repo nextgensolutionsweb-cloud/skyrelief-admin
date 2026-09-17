@@ -14,6 +14,36 @@ const statusStyle = {
 
 const avatarColors = ['#0ea5e9', '#22c55e', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
 
+const calculateExactAge = (dobString) => {
+  if (!dobString) return '';
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return '';
+  
+  const today = new Date();
+  
+  let years = today.getFullYear() - dob.getFullYear();
+  let months = today.getMonth() - dob.getMonth();
+  let days = today.getDate() - dob.getDate();
+  
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  const parts = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
+  if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  
+  return parts.length > 0 ? parts.join(', ') : '0 days';
+};
+
 export default function AgentDetailsPage({ params: paramsPromise }) {
   const router = useRouter();
   const params = use(paramsPromise);
@@ -223,7 +253,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   };
 
   const getBadge = (item) => {
-    if (item.marriage_status === 2 || item.insurance_status === 2) {
+    if (item.insurance_status === 2) return { bg: '#fee2e2', color: '#991b1b', label: 'Rejected' };
+    if (item.marriage_status === 2) {
       return { bg: '#dbeafe', color: '#1e3a8a', label: 'Married' };
     }
     if (item.marriage_status === 1) {
@@ -233,7 +264,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       return { bg: '#dcfce7', color: '#15803d', label: 'Active' };
     }
     if (item.insurance_status === 0) return { bg: '#fef3c7', color: '#92400e', label: 'Pending' };
-    if (item.insurance_status === 2) return { bg: '#fee2e2', color: '#ef4444', label: 'Suspended' };
+    if (item.account_status === 2) return { bg: '#fee2e2', color: '#ef4444', label: 'Suspended' };
     if (item.insurance_status === 4) return { bg: '#dcfce7', color: '#22c55e', label: 'Settled' };
     if (item.insurance_status === 5) return { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
     if (item.insurance_status === 6) return { bg: '#fef9c3', color: '#ca8a04', label: 'Upcoming' };
@@ -256,19 +287,21 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const fetchCounts = async () => {
     try {
       const planQuery = selectedPlan ? `&plan_id=${selectedPlan}` : '';
-      const [allRes, activeRes, suspendedRes, upcomingRes, marriedRes] = await Promise.all([
+      const [allRes, activeRes, suspendedRes, upcomingRes, marriedRes, rejectedRes] = await Promise.all([
         apiRequest(`/api/member/get-all?agent_id=${agentId}&limit=1${planQuery}`),
         apiRequest(`/api/member/get-all?agent_id=${agentId}&insurance_status=1&limit=1${planQuery}`),
-        apiRequest(`/api/member/get-all?agent_id=${agentId}&insurance_status=0&limit=1${planQuery}`),
+        apiRequest(`/api/member/get-all?agent_id=${agentId}&account_status=2&insurance_status=!2&limit=1${planQuery}`),
         apiRequest(`/api/member/get-all?agent_id=${agentId}&marriage_status=1&limit=1${planQuery}`),
-        apiRequest(`/api/member/get-all?agent_id=${agentId}&marriage_status=2&limit=1${planQuery}`)
+        apiRequest(`/api/member/get-all?agent_id=${agentId}&marriage_status=2&limit=1${planQuery}`),
+        apiRequest(`/api/member/get-all?agent_id=${agentId}&insurance_status=2&limit=1${planQuery}`)
       ]);
       setCounts({
         all: allRes?.meta?.total || 0,
         active: activeRes?.meta?.total || 0,
         suspended: suspendedRes?.meta?.total || 0,
         upcoming: upcomingRes?.meta?.total || 0,
-        married: marriedRes?.meta?.total || 0
+        married: marriedRes?.meta?.total || 0,
+        rejected: rejectedRes?.meta?.total || 0
       });
     } catch(err) {
       console.error("Error fetching counts:", err);
@@ -279,7 +312,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     setLoadingMembers(true);
     let query = `/api/member/get-all?page=${membersPage}&limit=10&agent_id=${agentId}`;
     if (activeTab === 'Active') query += '&insurance_status=1';
-    if (activeTab === 'Suspended') query += '&insurance_status=0';
+    if (activeTab === 'Suspended') query += '&account_status=2&insurance_status=!2';
+    if (activeTab === 'Rejected') query += '&insurance_status=2';
     if (activeTab === 'Upcoming') query += '&marriage_status=1';
     if (activeTab === 'Married') query += '&marriage_status=2';
     if (selectedPlan) query += `&plan_id=${selectedPlan}`;
@@ -515,8 +549,9 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const getMemberName = (item) => {
     const details = item.member_details || {};
     const fName = details.first_name || item.first_name || '';
+    const mName = details.middle_name || item.middle_name || '';
     const lName = details.last_name || item.last_name || '';
-    return `${fName} ${lName}`.replace(/\s+/g, ' ').trim() || item.name || 'Member';
+    return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim() || item.name || 'Member';
   };
 
   const getMemberInitials = (item) => {
@@ -627,7 +662,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Agent Not Found</h2>
         <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '20px' }}>The agent you are looking for does not exist or has been deleted.</p>
-        <button onClick={() => router.push('/agents')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Agents</span>
         </button>
       </div>
@@ -656,7 +691,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     <div>
       {/* Back Button */}
       <button 
-        onClick={() => router.push('/agents')} 
+        onClick={() => router.back()} 
         className="btn-secondary"
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px' }}
       >
@@ -760,7 +795,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Age:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.age || '—'}</span>
+                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{calculateExactAge(agent.dob) || agent.age || '—'}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Occupation:</span>
@@ -1060,12 +1095,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#2563eb', textTransform: 'uppercase', marginBottom: '8px' }}>Married Members</div>
             <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1d4ed8' }}>{counts.married}</div>
           </div>
+          <div style={{ background: '#fdf2f8', padding: '16px', borderRadius: '12px', border: '1px solid #fbcfe8' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#db2777', textTransform: 'uppercase', marginBottom: '8px' }}>Rejected Members</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#be185d' }}>{counts.rejected}</div>
+          </div>
         </div>
 
         {/* Filter Tabs and Dropdown */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 0', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
-            {['All', 'Active', 'Suspended', 'Upcoming', 'Married'].map(tab => (
+            {['All', 'Active', 'Suspended', 'Rejected', 'Upcoming', 'Married'].map(tab => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setMembersPage(1); }}

@@ -602,7 +602,7 @@ export default function AgentFormPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <button 
-          onClick={() => router.push(isEditMode ? `/agents/${agentId}` : '/agents')} 
+          onClick={() => router.back()} 
           className="btn-secondary"
           style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
         >
@@ -943,7 +943,7 @@ export default function AgentFormPage() {
         <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
           <button 
             type="button" 
-            onClick={() => router.push(isEditMode ? `/agents/${agentId}` : '/agents')} 
+            onClick={() => router.back()} 
             className="btn-secondary" 
             style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
           >

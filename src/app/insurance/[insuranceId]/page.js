@@ -279,7 +279,7 @@ export default function InsuranceDetailsPage({ params: paramsPromise }) {
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Insurance Plan Not Found</h2>
         <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '20px' }}>The plan you are looking for does not exist or has been deleted.</p>
-        <button onClick={() => router.push('/insurance')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Insurance List</span>
         </button>
       </div>
@@ -294,7 +294,7 @@ export default function InsuranceDetailsPage({ params: paramsPromise }) {
     <div style={{ maxWidth: '960px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* Back Button */}
       <button 
-        onClick={() => router.push('/insurance')} 
+        onClick={() => router.back()} 
         className="btn-secondary"
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px' }}
       >

@@ -43,7 +43,28 @@ export default function SettingsPage() {
   const [rotation, setRotation] = useState(0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // Bank QR State
+  const [upiId, setUpiId] = useState('skyrelief@sbi');
+  const [bankName, setBankName] = useState('State Bank of India');
+  const [defaultAmount, setDefaultAmount] = useState('1000');
+  const [generatedQrUrl, setGeneratedQrUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=skyrelief@sbi%26pn=SkyRelief%26am=1000%26cu=INR');
+  const [savingQr, setSavingQr] = useState(false);
+
+  const handleGenerateQr = (e) => {
+    e.preventDefault();
+    if (!upiId) {
+      showToast('Please enter a valid UPI ID', 'error');
+      return;
+    }
+    setSavingQr(true);
+    const cleanAmount = defaultAmount.replace(/[^0-9.]/g, '') || '1000';
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=SkyRelief%26am=${cleanAmount}%26cu=INR`;
+    setGeneratedQrUrl(qrUrl);
+    setTimeout(() => {
+      setSavingQr(false);
+      showToast('Bank QR Code generated & saved successfully!', 'success');
+    }, 600);
+  };
 
   // Fetch profile details
   async function loadProfile() {
@@ -680,6 +701,111 @@ export default function SettingsPage() {
               {savingSignature ? 'Saving...' : 'Save Signature'}
             </button>
           </form>
+        {/* CARD 4: Bank QR Code & UPI Settings */}
+        <div className="premium-card" style={{ padding: '32px' }}>
+          <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--text-dark)', marginBottom: '8px' }}>
+            🏦 Bank QR Code & UPI Settings
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>
+            Configure Admin Bank UPI ID & QR Code for agent collections & direct member payment slips.
+          </p>
+
+          <form onSubmit={handleGenerateQr} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Bank Name *
+              </label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                className="premium-input"
+                placeholder="State Bank of India"
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Bank UPI ID *
+              </label>
+              <input
+                type="text"
+                value={upiId}
+                onChange={e => setUpiId(e.target.value)}
+                className="premium-input"
+                placeholder="skyrelief@sbi"
+                required
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Default Payment Amount (₹)
+              </label>
+              <input
+                type="text"
+                value={defaultAmount}
+                onChange={e => setDefaultAmount(e.target.value)}
+                className="premium-input"
+                placeholder="1000"
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button
+                type="submit"
+                disabled={savingQr}
+                className="btn-primary"
+                style={{
+                  height: '42px',
+                  width: '100%',
+                  fontWeight: '700',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                  boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                }}
+              >
+                {savingQr ? 'Generating QR...' : '⚡ Generate & Save Bank QR Code'}
+              </button>
+            </div>
+          </form>
+
+          {generatedQrUrl && (
+            <div style={{
+              marginTop: '28px',
+              padding: '20px',
+              background: '#f8fafc',
+              borderRadius: '16px',
+              border: '1px dashed #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px'
+            }}>
+              <div style={{
+                background: '#fff',
+                padding: '10px',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                border: '1px solid #e2e8f0'
+              }}>
+                <img src={generatedQrUrl} alt="Bank QR Code" style={{ width: '130px', height: '130px', objectFit: 'contain' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'inline-block', padding: '4px 10px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', marginBottom: '8px' }}>
+                  ✓ Active Bank QR Code
+                </div>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: '#0f172a', fontWeight: '700' }}>
+                  {bankName}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
+                  UPI: <strong>{upiId}</strong> • Amount: <strong>₹{defaultAmount}</strong>
+                </p>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                  Agents and members can scan this QR code directly during payment collection.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Eye, Pencil, Trash2, Download } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, Download, FileText, CheckSquare, Square } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 import { ConfirmModal } from '@/components/Modal';
 
 const insuranceStatusStyle = {
   0: { bg: '#fef9c3', color: '#854d0e', label: 'Pending' },
   1: { bg: '#dcfce7', color: '#15803d', label: 'Active' },
-  2: { bg: '#e0e7ff', color: '#4338ca', label: 'Married' },
+  2: { bg: '#fee2e2', color: '#991b1b', label: 'Rejected' },
   3: { bg: '#f3e8ff', color: '#7e22ce', label: 'Invoice Generated' },
   '-1': { bg: '#f1f5f9', color: '#475569', label: 'Removed' },
 };
@@ -76,6 +76,11 @@ export default function MembersListPage() {
   const [menuOpen, setMenuOpen] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
 
+  // Multi-select & Bulk Generate state
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [docType, setDocType] = useState('bond'); // 'bond' or 'certificate'
+
   const fetchDependencies = async () => {
     try {
       const [agentsRes, plansRes] = await Promise.all([
@@ -105,6 +110,9 @@ export default function MembersListPage() {
         reqInsuranceStatus = '1';
       } else if (mainFilter === 'suspended') {
         reqAccountStatus = '2';
+        reqInsuranceStatus = '!2';
+      } else if (mainFilter === 'rejected') {
+        reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
         reqMarriageStatus = '2';
       } else if (mainFilter === 'upcoming') {
@@ -285,8 +293,9 @@ export default function MembersListPage() {
   const getMemberName = (item) => {
     const details = item.member_details || {};
     const fName = details.first_name || item.first_name || '';
+    const mName = details.middle_name || item.middle_name || '';
     const lName = details.last_name || item.last_name || '';
-    return `${fName} ${lName}`.trim() || item.name || 'Member';
+    return `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim() || item.name || 'Member';
   };
 
   const getInitials = (item) => {
@@ -310,6 +319,9 @@ export default function MembersListPage() {
         reqInsuranceStatus = '1';
       } else if (mainFilter === 'suspended') {
         reqAccountStatus = '2';
+        reqInsuranceStatus = '!2';
+      } else if (mainFilter === 'rejected') {
+        reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
         reqMarriageStatus = '2';
       } else if (mainFilter === 'upcoming') {
@@ -409,6 +421,40 @@ export default function MembersListPage() {
     }
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allInsuranceIds = list.map(item => item.insurance_id).filter(Boolean);
+      setSelectedIds(allInsuranceIds);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (insuranceId) => {
+    if (!insuranceId) return;
+    setSelectedIds(prev => 
+      prev.includes(insuranceId) ? prev.filter(id => id !== insuranceId) : [...prev, insuranceId]
+    );
+  };
+
+  const handleBulkPrint = () => {
+    if (selectedIds.length === 0) {
+      showToast('Please select at least one member', 'error');
+      return;
+    }
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const endpoint = docType === 'bond' ? 'generate-membership-bond' : 'generate-membership-certificate';
+
+    showToast(`Generating ${docType === 'bond' ? 'Bonds' : 'Certificates'} for ${selectedIds.length} member(s)...`, 'info');
+
+    const idsParam = selectedIds.join(',');
+    const url = `${BASE_API_URL}/api/member/${endpoint}?id=${idsParam}&apikey=${apikey}&token=${token}&admin=true&print=true`;
+    window.open(url, '_blank');
+
+    setShowGenerateModal(false);
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
@@ -416,9 +462,18 @@ export default function MembersListPage() {
           <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>Member Management</h1>
           <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px' }}>{meta?.total || 0} members found</p>
         </div>
-        <button className="btn-primary" onClick={() => router.push('/members/form')}>
-          <Plus size={15} strokeWidth={2.5} /> Add Member
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button 
+            className="btn-secondary" 
+            onClick={() => setShowGenerateModal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#0ea5e9', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            <FileText size={16} /> Generate Certificate / Bond
+          </button>
+          <button className="btn-primary" onClick={() => router.push('/members/form')}>
+            <Plus size={15} strokeWidth={2.5} /> Add Member
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ padding: '0', overflow: 'visible' }}>
@@ -439,7 +494,8 @@ export default function MembersListPage() {
                   { label: 'Active', val: 'active' },
                   { label: 'Married', val: 'married' },
                   { label: 'Upcoming', val: 'upcoming' },
-                  { label: 'Suspended', val: 'suspended' }
+                  { label: 'Suspended', val: 'suspended' },
+                  { label: 'Rejected', val: 'rejected' }
                 ].map(t => (
                   <button
                     key={t.val}
@@ -578,6 +634,14 @@ export default function MembersListPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', width: '40px', borderBottom: '1px solid #f1f5f9' }}>
+                    <input 
+                      type="checkbox" 
+                      onChange={handleSelectAll}
+                      checked={list.length > 0 && selectedIds.length === list.map(item => item.insurance_id).filter(Boolean).length}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                    />
+                  </th>
                   {['MEMBER', 'MOBILE', 'INSURANCE PLAN', 'REGISTERED BY', 'INSURANCE', 'JOINING DATE', 'ACTIONS'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
                   ))}
@@ -586,7 +650,7 @@ export default function MembersListPage() {
               <tbody>
                 {list.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={8} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
                       <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
                       <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155' }}>No Members Found</div>
                       <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>Try adjusting your search or filters.</div>
@@ -595,6 +659,7 @@ export default function MembersListPage() {
                 ) : (
                   list.map((item, idx) => {
                   const memberId = item.member_id || item.id;
+                  const insuranceId = item.insurance_id;
                   const name = getMemberName(item);
                   const memberCode = item.member_code || memberId || '';
                   const mobile = item.member_details?.mobile || item.phone || item.mobile || 'N/A';
@@ -615,29 +680,25 @@ export default function MembersListPage() {
                   const joiningDateRaw = item.insurance_joining_date || item.joining_date || item.created_at;
                   const joiningDate = joiningDateRaw ? new Date(joiningDateRaw).toLocaleDateString() : 'N/A';
                   
-                  const timeAgo = (dateStr) => {
-                    if (!dateStr) return 'N/A';
-                    const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
-                    let interval = seconds / 31536000;
-                    if (interval >= 1) return Math.floor(interval) + " y";
-                    interval = seconds / 2592000;
-                    if (interval >= 1) return Math.floor(interval) + " m";
-                    interval = seconds / 86400;
-                    if (interval >= 1) return Math.floor(interval) + " d";
-                    interval = seconds / 3600;
-                    if (interval >= 1) return Math.floor(interval) + " h";
-                    interval = seconds / 60;
-                    if (interval >= 1) return Math.floor(interval) + " min";
-                    return Math.floor(seconds) + " s";
-                  };
-                  
+                  const isSelected = selectedIds.includes(insuranceId);
                   const profileUrl = getProfileImage(item);
 
                   return (
-                    <tr key={`${item.id || memberId}-${item.plan_id || idx}`} style={{ borderBottom: '1px solid #f8fafc' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#fafcff'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    <tr key={`${item.id || memberId}-${item.plan_id || idx}`} style={{ borderBottom: '1px solid #f8fafc', background: isSelected ? '#f0f9ff' : 'transparent' }}
+                      onMouseEnter={e => e.currentTarget.style.background = isSelected ? '#e0f2fe' : '#fafcff'}
+                      onMouseLeave={e => e.currentTarget.style.background = isSelected ? '#f0f9ff' : 'transparent'}
                     >
+                      {/* Checkbox */}
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        <input 
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={!insuranceId}
+                          onChange={() => handleSelectOne(insuranceId)}
+                          style={{ cursor: insuranceId ? 'pointer' : 'not-allowed', width: '16px', height: '16px' }}
+                        />
+                      </td>
+
                       {/* Profile & Name */}
                       <td style={{ padding: '12px 16px' }}>
                         <div 
@@ -655,8 +716,11 @@ export default function MembersListPage() {
                           <div>
                             <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {name}
-                              {item.account_status === 2 && insStatusInfo.label !== 'Deceased' && (
+                              {item.account_status === 2 && item.insurance_status !== 2 && insStatusInfo.label !== 'Deceased' && (
                                 <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem' }}>Suspended</span>
+                              )}
+                              {String(item.insurance_status) === '2' && insStatusInfo.label !== 'Deceased' && (
+                                <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem' }}>Rejected</span>
                               )}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>Code: {memberCode}</div>
@@ -703,7 +767,23 @@ export default function MembersListPage() {
                             >
                               <Eye size={15} />
                             </button>
-
+                            {insuranceId && (
+                              <>
+                                <button
+                                  title="Generate Bond"
+                                  onClick={() => {
+                                    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+                                    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+                                    window.open(`${BASE_API_URL}/api/member/generate-membership-bond?id=${insuranceId}&apikey=${apikey}&token=${token}&admin=true&print=true`, '_blank');
+                                  }}
+                                  style={{ color: '#0284c7', cursor: 'pointer', padding: '5px', borderRadius: '6px', border: 'none', background: 'none' }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#e0f2fe'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                >
+                                  <FileText size={15} />
+                                </button>
+                              </>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -806,6 +886,106 @@ export default function MembersListPage() {
                 onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
                 onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
               >Delete Member</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generate Certificate / Bond Modal */}
+      {showGenerateModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }} onClick={() => setShowGenerateModal(false)} />
+          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a' }}>Generate Certificate / Bond</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Select document type and members</div>
+              </div>
+            </div>
+
+            {/* Document Type Option */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '8px' }}>
+                1. Select Document Type:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div 
+                  onClick={() => setDocType('bond')}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: docType === 'bond' ? '2px solid #0ea5e9' : '1.5px solid #e2e8f0',
+                    background: docType === 'bond' ? '#f0f9ff' : '#f8fafc',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ fontWeight: '700', fontSize: '0.9rem', color: docType === 'bond' ? '#0284c7' : '#334155' }}>📄 Membership Bond</div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Full Bond Agreement</div>
+                </div>
+
+                <div 
+                  onClick={() => setDocType('certificate')}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: docType === 'certificate' ? '2px solid #0ea5e9' : '1.5px solid #e2e8f0',
+                    background: docType === 'certificate' ? '#f0f9ff' : '#f8fafc',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ fontWeight: '700', fontSize: '0.9rem', color: docType === 'certificate' ? '#0284c7' : '#334155' }}>📜 Certificate</div>
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Membership Certificate</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selection info */}
+            <div style={{ marginBottom: '22px', padding: '12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                2. Selected Members: <span style={{ color: '#0ea5e9', fontWeight: '800' }}>{selectedIds.length}</span> member(s)
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4' }}>
+                {selectedIds.length === 0 ? (
+                  <span style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ No members selected. Please tick checkboxes from the member list table.</span>
+                ) : (
+                  `Generate and print ${docType === 'bond' ? 'Membership Bond' : 'Certificate'} for all ${selectedIds.length} selected member(s) at once.`
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => setShowGenerateModal(false)} 
+                className="btn-secondary" 
+                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '0.82rem' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleBulkPrint}
+                disabled={selectedIds.length === 0}
+                className="btn-primary" 
+                style={{ 
+                  flex: 1, 
+                  padding: '10px', 
+                  borderRadius: '10px', 
+                  background: selectedIds.length === 0 ? '#cbd5e1' : '#0ea5e9', 
+                  color: 'white', 
+                  boxShadow: 'none', 
+                  border: 'none', 
+                  fontSize: '0.82rem',
+                  cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Generate ({selectedIds.length})
+              </button>
             </div>
           </div>
         </div>

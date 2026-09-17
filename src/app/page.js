@@ -165,7 +165,8 @@ export default function Dashboard() {
     { label: 'Total Members',      value: summary?.total_members?.toLocaleString() || '0', iconBg: '#dbeafe', emoji: '👥',  href: '/members'   },
     { label: 'Active Members',     value: summary?.active_members?.toLocaleString() || '0', iconBg: '#dcfce7', emoji: '✅', href: '/members'    },
     { label: 'Pending Requests',   value: summary?.pending_requests?.toLocaleString() || '0', iconBg: '#fef3c7', emoji: '⏳', href: '/admin/agent-requests'    },
-    { label: 'Suspended Members',  value: summary?.suspended_account_members?.toLocaleString() || '0', iconBg: '#fee2e2', emoji: '⏸️', href: '/members?account_status=2'    },
+    { label: 'Suspended Members',  value: summary?.suspended_account_members?.toLocaleString() || '0', iconBg: '#fee2e2', emoji: '⏸️', href: '/members?filter=suspended'    },
+    { label: 'Rejected Members',   value: summary?.rejected_members?.toLocaleString() || '0', iconBg: '#fce7f3', emoji: '❌', href: '/members?filter=rejected'    },
 
     { label: 'Total Agents',       value: summary?.total_agents?.toLocaleString() || '0', iconBg: '#ede9fe', emoji: '🧑‍💼', href: '/agents'    },
     { label: 'Active Agents',      value: summary?.active_agents?.toLocaleString() || '0', iconBg: '#d1fae5', emoji: '✅',  href: '/agents'  },
@@ -424,7 +425,7 @@ export default function Dashboard() {
       </div>
 
       {/* 3. Financial Collections Trend */}
-      <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', marginBottom: '20px' }}>
+      {/* <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', padding: '20px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Financial Collections Trend</h2>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -488,10 +489,10 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </div> */}
 
       {/* ── Plan Wise Overview ──────────────────────────────── */}
-      {/* <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', overflow: 'hidden', marginBottom: '20px' }}>
+      <div style={{ background: '#fff', borderRadius: '18px', border: '1.5px solid #bee3f8', boxShadow: '0 2px 10px rgba(14,165,233,0.08)', overflow: 'hidden', marginBottom: '20px' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e0f2fe', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: '700', fontSize: '1rem', color: '#0f172a' }}>Plan Wise Overview</span>
         </div>
@@ -502,10 +503,7 @@ export default function Dashboard() {
                 <th style={{ padding: '14px 20px', fontWeight: '700' }}>Plan Name</th>
                 <th style={{ padding: '14px 20px', fontWeight: '700' }}>Total Members</th>
                 <th style={{ padding: '14px 20px', fontWeight: '700' }}>Active Members</th>
-                <th style={{ padding: '14px 20px', fontWeight: '700' }}>Married Members</th>
                 <th style={{ padding: '14px 20px', fontWeight: '700' }}>Total Agents</th>
-                <th style={{ padding: '14px 20px', fontWeight: '700' }}>Upcoming Marriages</th>
-                <th style={{ padding: '14px 20px', fontWeight: '700' }}>Completed Marriages</th>
               </tr>
             </thead>
             <tbody>
@@ -516,10 +514,7 @@ export default function Dashboard() {
                   <td style={{ padding: '14px 20px', fontSize: '0.85rem', fontWeight: '600', color: '#0f172a' }}>{plan.plan_name}</td>
                   <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#475569' }}>{plan.total_members}</td>
                   <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#15803d', fontWeight: '600' }}>{plan.active_members}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#e11d48', fontWeight: '600' }}>{plan.married_members}</td>
                   <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#475569' }}>{plan.total_agents}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#d97706', fontWeight: '600' }}>{plan.upcoming_marriages}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '0.85rem', color: '#4f46e5', fontWeight: '600' }}>{plan.completed_marriages}</td>
                 </tr>
               ))}
               {planStats.length === 0 && !loading && (
@@ -530,7 +525,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
-      </div> */}
+      </div>
 
       {/* ── Recent Members, Agents, Marriages ──────────────────────────── */}
       <div className="grid-r-3">

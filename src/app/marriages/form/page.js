@@ -353,7 +353,7 @@ export default function MarriageFormPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <button
-          onClick={() => router.push(isEditMode ? `/marriages/${marriageId}` : '/marriages')}
+          onClick={() => router.back()}
           className="btn-secondary"
           style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
         >
@@ -569,7 +569,7 @@ export default function MarriageFormPage() {
         <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
           <button
             type="button"
-            onClick={() => router.push(isEditMode ? `/marriages/${marriageId}` : '/marriages')}
+            onClick={() => router.back()}
             className="btn-secondary"
             style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
           >

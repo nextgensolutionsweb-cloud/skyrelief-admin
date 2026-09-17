@@ -288,7 +288,7 @@ export default function CreateCampaignPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button onClick={() => router.push('/payments')} className="btn-secondary" style={{ padding: '8px' }}>
+        <button onClick={() => router.back()} className="btn-secondary" style={{ padding: '8px' }}>
           <ArrowLeft size={18} />
         </button>
         <div>

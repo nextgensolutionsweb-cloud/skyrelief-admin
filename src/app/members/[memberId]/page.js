@@ -13,6 +13,36 @@ const statusStyle = {
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
 
+const calculateExactAge = (dobString) => {
+  if (!dobString) return '';
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return '';
+  
+  const today = new Date();
+  
+  let years = today.getFullYear() - dob.getFullYear();
+  let months = today.getMonth() - dob.getMonth();
+  let days = today.getDate() - dob.getDate();
+  
+  if (days < 0) {
+    months--;
+    const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    days += prevMonth.getDate();
+  }
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  const parts = [];
+  if (years > 0) parts.push(`${years} ${years === 1 ? 'year' : 'years'}`);
+  if (months > 0) parts.push(`${months} ${months === 1 ? 'month' : 'months'}`);
+  if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+  
+  return parts.length > 0 ? parts.join(', ') : '0 days';
+};
+
 const formatAadhaar = (aadhaar) => {
   if (!aadhaar) return '—';
   const cleaned = String(aadhaar).replace(/\D/g, '');
@@ -20,6 +50,19 @@ const formatAadhaar = (aadhaar) => {
     return cleaned.match(/.{1,4}/g).join(' ');
   }
   return aadhaar;
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return '—';
+  }
 };
 
 export default function MemberProfilePage({ params: paramsPromise }) {
@@ -31,6 +74,10 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const [plans, setPlans] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Dues state
+  const [memberDues, setMemberDues] = useState([]);
+  const [duesFilter, setDuesFilter] = useState('All');
 
   // Zoom lightbox state
   const [zoomImage, setZoomImage] = useState(null);
@@ -215,6 +262,12 @@ export default function MemberProfilePage({ params: paramsPromise }) {
         setAgents(agentsRes.r);
       }
 
+      // Fetch member dues
+      const duesRes = await apiRequest(`/api/payment/my-dues?member_id=${memberId}`).catch(() => ({ s: 0, r: [] }));
+      if (duesRes.s === 1 && Array.isArray(duesRes.r)) {
+        setMemberDues(duesRes.r);
+      }
+
       // Fetch member profile
       const res = await apiRequest(`/api/member/get?id=${memberId}`);
       if (res.s === 1 && res.r) {
@@ -246,6 +299,14 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewSlip = (dueId) => {
+    if (!dueId) return;
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const url = `${BASE_API_URL}/api/payment/member-payment-slip/${dueId}?apikey=${apikey}&token=${token}`;
+    window.open(url, "_blank");
   };
 
   useEffect(() => {
@@ -390,7 +451,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Member Not Found</h2>
         <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '20px' }}>The member you are looking for does not exist or has been deleted.</p>
-        <button onClick={() => router.push('/members')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Members</span>
         </button>
       </div>
@@ -404,10 +465,11 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const fullName = member.full_name || (firstName !== '—' ? `${firstName} ${lastName !== '—' ? lastName : ''}` : '') || 'Member';
   const initials = `${firstName !== '—' && firstName ? firstName[0] : ''}${lastName !== '—' && lastName ? lastName[0] : ''}`.toUpperCase() || 'MB';
   
-  const isSuspended = member.account_status === 2;
-  const displayStatus = isSuspended ? 'Suspended' : (member.insurance_status_text || 'Pending');
+  const isRejected = String(member.insurance_status) === '2';
+  const isSuspended = member.account_status === 2 && !isRejected;
+  const displayStatus = isRejected ? 'Rejected' : isSuspended ? 'Suspended' : (member.insurance_status_text || 'Pending');
   const statusClass = 
-    isSuspended ? 'inactive' :
+    (isSuspended || isRejected) ? 'inactive' :
     displayStatus === 'Active' ? 'active' : 
     displayStatus === 'Married' ? 'active' : 
     displayStatus === 'Removed' ? 'inactive' : 'pending';
@@ -457,7 +519,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     <div>
       {/* Back Button */}
       <button 
-        onClick={() => router.push('/members')} 
+        onClick={() => router.back()} 
         className="btn-secondary"
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px' }}
       >
@@ -567,7 +629,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Age:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{member.age || details.age || '—'}</span>
+                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{calculateExactAge(member.dob || details.dob) || member.age || details.age || '—'}</span>
               </div>
               <div>
                 <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Mobile:</span>
@@ -583,10 +645,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{formatAadhaar(member.aadhaar || member.aadhaar_number || details.aadhaar_number || details.aadhaar)}</span>
               </div>
               
-               <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Administrative Notes:</span>
-                <p style={{ color: 'var(--text-dark)', background: '#f8fafc', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.78rem', lineHeight: 1.4 }}>{member.notes || 'No notes available.'}</p>
-              </div>
+
             </div>
           </div>
 
@@ -688,53 +747,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               })()}
 
 
-              {/* PAN Card */}
-              {(() => {
-                const imgUrl = panDocUrl || null;
-                return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '190px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>PAN Card</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt="PAN Image"
-                          style={{ width: '100%', height: '110px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
-                          onClick={() => { setZoomImage(imgUrl); setZoomTitle('PAN Card Image'); }}
-                        />
-                      ) : (
-                        <div style={{ height: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)' }}>
-                          <span>No Document Uploaded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Signature */}
-              {(() => {
-                const imgUrl = signatureUrl || null;
-                return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '190px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Signature</span>
-                      {imgUrl ? (
-                        <img 
-                          src={imgUrl} 
-                          alt="Member Signature"
-                          style={{ width: '100%', height: '110px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
-                          onClick={() => { setZoomImage(imgUrl); setZoomTitle('Member Signature'); }}
-                        />
-                      ) : (
-                        <div style={{ height: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)' }}>
-                          <span>No Signature Uploaded</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+          
             </div>
           </div>
 
@@ -995,7 +1008,191 @@ export default function MemberProfilePage({ params: paramsPromise }) {
 
       </div>
 
-      {/* Removed Full Width Grid - Documents as per user request */}
+      {/* Payment Collections & Dues Section */}
+      <div className="premium-card" style={{ padding: '24px', marginTop: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '800', color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCard size={18} color="var(--primary)" />
+              Payment Collections & Dues
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+              Track member campaign payment dues, history, and slips
+            </p>
+          </div>
+
+          {/* Filter Tabs */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', gap: '4px' }}>
+            {['All', 'Pending', 'Paid', 'Pending Request'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setDuesFilter(tab)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: duesFilter === tab ? '#ffffff' : 'transparent',
+                  color: duesFilter === tab ? 'var(--primary)' : '#64748b',
+                  boxShadow: duesFilter === tab ? '0 2px 4px rgba(0,0,0,0.05)' : 'none'
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary Metric Cards */}
+        {(() => {
+          const totalPaid = memberDues.filter(d => Number(d.status) === 1);
+          const totalPending = memberDues.filter(d => Number(d.status) === 0);
+          const totalApprovalPending = memberDues.filter(d => Number(d.status) === 2);
+
+          const paidSum = totalPaid.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
+          const pendingSum = totalPending.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
+          const approvalSum = totalApprovalPending.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
+          const totalSum = memberDues.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Dues</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>₹{totalSum.toLocaleString('en-IN')}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{memberDues.length} Records</div>
+              </div>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase' }}>Paid Amount</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#15803d', marginTop: '4px' }}>₹{paidSum.toLocaleString('en-IN')}</div>
+                <div style={{ fontSize: '0.75rem', color: '#166534', marginTop: '2px' }}>{totalPaid.length} Cleared</div>
+              </div>
+              <div style={{ background: '#fefce8', border: '1px solid #fef08a', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#854d0e', textTransform: 'uppercase' }}>Pending Dues</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#ca8a04', marginTop: '4px' }}>₹{pendingSum.toLocaleString('en-IN')}</div>
+                <div style={{ fontSize: '0.75rem', color: '#854d0e', marginTop: '2px' }}>{totalPending.length} Unpaid</div>
+              </div>
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '16px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1e40af', textTransform: 'uppercase' }}>Pending Request</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#2563eb', marginTop: '4px' }}>₹{approvalSum.toLocaleString('en-IN')}</div>
+                <div style={{ fontSize: '0.75rem', color: '#1e40af', marginTop: '2px' }}>{totalApprovalPending.length} Awaiting Approval</div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Dues List Table */}
+        {(() => {
+          const filteredDues = memberDues.filter(d => {
+            if (duesFilter === 'Pending') return Number(d.status) === 0;
+            if (duesFilter === 'Paid') return Number(d.status) === 1;
+            if (duesFilter === 'Pending Request') return Number(d.status) === 2;
+            return true;
+          });
+
+          if (filteredDues.length === 0) {
+            return (
+              <div style={{ padding: '32px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#94a3b8', fontWeight: '600', fontSize: '0.85rem' }}>
+                No {duesFilter !== 'All' ? duesFilter.toLowerCase() : ''} dues records found for this member.
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '700' }}>
+                    <th style={{ padding: '12px 16px' }}>Campaign / Detail</th>
+                    <th style={{ padding: '12px 16px' }}>Program / Plan</th>
+                    <th style={{ padding: '12px 16px' }}>Amount</th>
+                    <th style={{ padding: '12px 16px' }}>Due Date</th>
+                    <th style={{ padding: '12px 16px' }}>Status</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDues.map((item, idx) => {
+                    const st = Number(item.status);
+                    let badgeBg = '#fef9c3';
+                    let badgeColor = '#854d0e';
+                    let badgeText = 'Pending';
+
+                    if (st === 1) {
+                      badgeBg = '#dcfce7';
+                      badgeColor = '#15803d';
+                      badgeText = 'Paid';
+                    } else if (st === 2) {
+                      badgeBg = '#dbeafe';
+                      badgeColor = '#1e40af';
+                      badgeText = 'Pending Request';
+                    }
+
+                    const dueAmt = Number(item.amount || item.total_amount || 0);
+
+                    return (
+                      <tr key={item.due_id || item.id || idx} style={{ borderBottom: idx === filteredDues.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: '700', color: '#0f172a' }}>
+                          {item.campaign_title || item.campaign_name || item.title || `Campaign #${item.campaign_id || item.due_id}`}
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#475569' }}>
+                          {item.plan_name || item.insurance_name || '—'}
+                        </td>
+                        <td style={{ padding: '14px 16px', fontWeight: '800', color: '#0f172a' }}>
+                          ₹{dueAmt.toLocaleString('en-IN')}
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                          {formatDate(item.due_date || item.created_at)}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 10px',
+                            borderRadius: '20px',
+                            background: badgeBg,
+                            color: badgeColor,
+                            fontWeight: '700',
+                            fontSize: '0.75rem'
+                          }}>
+                            {badgeText}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          {st === 1 ? (
+                            <button
+                              onClick={() => handleViewSlip(item.due_id || item.id)}
+                              className="btn-secondary"
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.75rem',
+                                fontWeight: '700',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: '#eff6ff',
+                                color: '#2563eb',
+                                border: '1px solid #bfdbfe'
+                              }}
+                            >
+                              <FileText size={14} />
+                              View Slip
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+      </div>
 
       {/* Lightbox Zoom Modal */}
       {zoomImage && (
@@ -1248,6 +1445,14 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Joining Date</label>
                   <input type="date" required value={editJoiningForm.joining_date} onChange={e => setEditJoiningForm({ ...editJoiningForm, joining_date: e.target.value })} className="premium-input" style={{ width: '100%' }} />
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Assigned Agent</label>
+                <select value={editJoiningForm.agent_id} onChange={e => setEditJoiningForm({ ...editJoiningForm, agent_id: e.target.value })} className="premium-input" style={{ width: '100%' }}>
+                  <option value="">-- No Agent (Direct) --</option>
+                  {agents.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
+                </select>
               </div>
 
               <div>

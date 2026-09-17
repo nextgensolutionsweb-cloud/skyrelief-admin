@@ -113,8 +113,9 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     if (item.member) {
       const details = item.member.member_details || item.member;
       const fName = details.first_name || item.member.first_name || '';
+      const mName = details.middle_name || item.member.middle_name || '';
       const lName = details.last_name || item.member.last_name || '';
-      const fullName = `${fName} ${lName}`.trim();
+      const fullName = `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
       if (fullName) return fullName;
     }
     return item.member_name || item.name || 'N/A';
@@ -164,7 +165,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
         <div style={{ fontSize: '2rem', marginBottom: '10px' }}>⚠️</div>
         <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Record Not Found</h2>
         <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: '20px' }}>The marriage case record you are looking for does not exist or has been deleted.</p>
-        <button onClick={() => router.push('/marriages')} className="btn-secondary">
+        <button onClick={() => router.back()} className="btn-secondary">
           <ArrowLeft size={16} /> <span>Back to Marriages</span>
         </button>
       </div>
@@ -172,14 +173,14 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
   }
 
   const statusInfo = statusStyle[marriage.status] || { bg: '#f1f5f9', color: '#475569', label: marriage.status || 'Pending' };
-  const cardUrl = getImageUrl(marriage.invitation_card || marriage.invitation_card_url || marriage.card);
-  const photoUrl = getImageUrl(marriage.marriage_photo || marriage.photo_url || marriage.photo);
+  const cardUrl = getImageUrl(marriage.invitation_card || marriage.invitation_card_url || marriage.card || marriage.marriage_card || marriage.invitation_photo);
+  const photoUrl = getImageUrl(marriage.marriage_photo || marriage.photo_url || marriage.photo || marriage.marriage_image || marriage.claim_photo || marriage.claim_image || marriage.agent_uploaded_photo || marriage.uploaded_photo);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* Back Button */}
       <button
-        onClick={() => router.push('/marriages')}
+        onClick={() => router.back()}
         className="btn-secondary"
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px', display: 'flex', alignItems: 'center', gap: '6px' }}
       >
