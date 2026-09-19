@@ -54,8 +54,9 @@ const calculateAge = (dobString) => {
   const today = new Date();
   let age = today.getFullYear() - dob.getFullYear();
   const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-    age--;
+  const d = today.getDate() - dob.getDate();
+  if (m > 0 || (m === 0 && d > 0)) {
+    age++;
   }
   return age >= 0 ? String(age) : '0';
 };

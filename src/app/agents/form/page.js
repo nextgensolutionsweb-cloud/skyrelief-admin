@@ -184,8 +184,9 @@ export default function AgentFormPage() {
     const today = new Date();
     let computedAge = today.getFullYear() - dob.getFullYear();
     const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-      computedAge--;
+    const d = today.getDate() - dob.getDate();
+    if (m > 0 || (m === 0 && d > 0)) {
+      computedAge++;
     }
     return computedAge >= 0 ? String(computedAge) : '0';
   };

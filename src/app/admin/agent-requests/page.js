@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History, Mic, Square, Play, Trash2 } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History, Mic, Square, Play, Trash2, CreditCard } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 import Modal from '@/components/Modal';
 
@@ -174,56 +174,6 @@ export default function AgentRequestsPage() {
     );
   };
 
-  const [bankSettings, setBankSettings] = useState({
-    bank_name: 'State Bank of India',
-    bank_upi_id: 'skyrelief@sbi',
-    bank_account_no: '',
-    bank_ifsc: '',
-    default_amount: '1000'
-  });
-  const [savingBankSettings, setSavingBankSettings] = useState(false);
-
-  useEffect(() => {
-    fetchBankSettings();
-  }, []);
-
-  const fetchBankSettings = async () => {
-    try {
-      const res = await apiRequest('/api/admin/agent-requests/bank-settings');
-      if (res && res.s === 1 && res.r) {
-        setBankSettings({
-          bank_name: res.r.bank_name || 'State Bank of India',
-          bank_upi_id: res.r.bank_upi_id || 'skyrelief@sbi',
-          bank_account_no: res.r.bank_account_no || '',
-          bank_ifsc: res.r.bank_ifsc || '',
-          default_amount: res.r.default_amount || '1000'
-        });
-      }
-    } catch (e) {
-      console.error('Failed to fetch bank settings', e);
-    }
-  };
-
-  const handleSaveBankSettings = async (e) => {
-    e.preventDefault();
-    setSavingBankSettings(true);
-    try {
-      const res = await apiRequest('/api/admin/agent-requests/bank-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bankSettings)
-      });
-      if (res && res.s === 1) {
-        showToast('Bank QR & UPI Settings updated successfully!', 'success');
-      } else {
-        showToast(res?.m || 'Failed to update bank settings', 'error');
-      }
-    } catch (err) {
-      showToast('Error saving bank settings', 'error');
-    } finally {
-      setSavingBankSettings(false);
-    }
-  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -239,7 +189,7 @@ export default function AgentRequestsPage() {
     try {
       const res = await apiRequest('/api/admin/agent-requests');
       if (res.s === 1) {
-        setRequests(res.r || []);
+        setRequests((res.r || []).filter(r => r.type !== 'payment'));
       }
     } catch (err) {
       showToast('Failed to fetch agent requests', 'error');
@@ -328,7 +278,7 @@ export default function AgentRequestsPage() {
   const totalLogPages = Math.ceil(logs.length / itemsPerPage);
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ padding: '28px 32px', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '4px' }}>Agent Requests Manager</h1>
@@ -368,8 +318,9 @@ export default function AgentRequestsPage() {
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading requests...</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
                 <tr>
                   <th style={{ padding: '16px' }}>REQUEST TYPE</th>
                   <th style={{ padding: '16px' }}>MEMBER DETAILS</th>
@@ -432,6 +383,7 @@ export default function AgentRequestsPage() {
                 )}
               </tbody>
             </table>
+          </div>
           )}
           {!loading && totalRequestPages > 1 && (
             <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
@@ -448,8 +400,9 @@ export default function AgentRequestsPage() {
           {loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading history...</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
                 <tr>
                   <th style={{ padding: '16px' }}>REQUEST TYPE</th>
                   <th style={{ padding: '16px' }}>MEMBER NAME</th>
@@ -499,6 +452,7 @@ export default function AgentRequestsPage() {
                 )}
               </tbody>
             </table>
+          </div>
           )}
           {!loading && totalLogPages > 1 && (
             <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>

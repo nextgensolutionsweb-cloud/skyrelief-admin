@@ -545,11 +545,11 @@ export default function PaymentCampaignsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {list.map((item) => {
+                {list.map((item, index) => {
                   const statusInfo = campaignStatusStyle[item.status] || { bg: '#f1f5f9', color: '#475569', label: item.status || 'Unknown' };
 
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f8fafc' }}
+                    <tr key={item.id !== undefined && item.id !== null ? `${item.id}-${index}` : index} style={{ borderBottom: '1px solid #f8fafc' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#fafcff'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >

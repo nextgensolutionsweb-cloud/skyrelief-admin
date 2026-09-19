@@ -206,7 +206,7 @@ export default function InsuranceListPage() {
                   const imageUrl = item.image ? (item.image.startsWith('http') ? item.image : `${BASE_API_URL}${item.image}`) : null;
                   
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f8fafc' }}
+                    <tr key={item.id !== undefined && item.id !== null ? `${item.id}-${index}` : index} style={{ borderBottom: '1px solid #f8fafc' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#fafcff'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >

@@ -542,7 +542,7 @@ export default function MarriagesListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredList.map((item) => {
+                {filteredList.map((item, index) => {
                   const mName = getMemberName(item);
                   const mCode = getMemberCode(item);
                   const plan = getPlanName(item);
@@ -553,7 +553,7 @@ export default function MarriagesListPage() {
                   const amount = item.amount_given ? "₹" + Number(item.amount_given).toLocaleString() : "-";
 
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f8fafc' }}
+                    <tr key={item.id !== undefined && item.id !== null ? `${item.id}-${index}` : index} style={{ borderBottom: '1px solid #f8fafc' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#fafcff'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >

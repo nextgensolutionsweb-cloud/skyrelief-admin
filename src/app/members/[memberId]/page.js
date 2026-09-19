@@ -92,7 +92,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     if (!userId) return;
     setLoadingPassword(true);
     try {
-      const res = await apiRequest(`/api/user/get-password?user_id=${userId}`);
+      const res = await apiRequest(`/api/user/get-password?user_id=${userId}`, { skipToast: true });
       if (res.s === 1 && res.r) {
         setPasswordData(res.r?.password || (typeof res.r === 'string' ? res.r : res.r?.password_text || null));
       } else {
@@ -251,8 +251,8 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     try {
       // Fetch dropdown dependencies
       const [plansRes, agentsRes] = await Promise.all([
-        apiRequest('/api/insurance/get-all?limit=100').catch(() => ({ s: 0, r: [] })),
-        apiRequest('/api/agent/get-all?limit=100').catch(() => ({ s: 0, r: [] }))
+        apiRequest('/api/insurance/get-all?limit=100', { skipToast: true }).catch(() => ({ s: 0, r: [] })),
+        apiRequest('/api/agent/get-all?limit=100', { skipToast: true }).catch(() => ({ s: 0, r: [] }))
       ]);
       
       if (plansRes.s === 1 && Array.isArray(plansRes.r)) {
@@ -263,7 +263,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
       }
 
       // Fetch member dues
-      const duesRes = await apiRequest(`/api/payment/my-dues?member_id=${memberId}`).catch(() => ({ s: 0, r: [] }));
+      const duesRes = await apiRequest(`/api/payment/my-dues?member_id=${memberId}`, { skipToast: true }).catch(() => ({ s: 0, r: [] }));
       if (duesRes.s === 1 && Array.isArray(duesRes.r)) {
         setMemberDues(duesRes.r);
       }

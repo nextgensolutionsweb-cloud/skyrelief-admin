@@ -1159,7 +1159,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map(item => {
+                  {members.map((item, idx) => {
                     const memberId = item.member_id || item.id;
                     const name = getMemberName(item);
                     const code = item.member_code || memberId || '';
@@ -1167,9 +1167,10 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                     const plan = getPlanName(item);
                     const badge = getBadge(item);
                     const profileUrl = getMemberProfileImage(item);
+                    const rowKey = `m-${memberId}-${item.insurance_id || idx}`;
 
                     return (
-                      <tr key={memberId} style={{ borderBottom: '1px solid #f8fafc' }}
+                      <tr key={rowKey} style={{ borderBottom: '1px solid #f8fafc' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#fafcff'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
@@ -1520,11 +1521,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 </tr>
               </thead>
               <tbody>
-                {pendingCollections.filter(d => d.type === 'JOINING_FEE').length === 0 ? (
+                {pendingCollections.filter(d => d.type === 'JOINING_FEE' && (d.status === 0 || d.status === '0')).length === 0 ? (
                   <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No pending joining fees found.</td></tr>
                 ) : (
-                  pendingCollections.filter(d => d.type === 'JOINING_FEE').map(due => (
-                    <tr key={due.due_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  pendingCollections.filter(d => d.type === 'JOINING_FEE' && (d.status === 0 || d.status === '0')).map((due, idx) => (
+                    <tr key={`fee-${due.due_id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{due.member_name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{due.member_code}</div>
@@ -1568,11 +1569,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 </tr>
               </thead>
               <tbody>
-                {pendingCollections.filter(d => d.type === 'INSTALLMENT').length === 0 ? (
+                {pendingCollections.filter(d => d.type === 'INSTALLMENT' && (d.status === 0 || d.status === '0')).length === 0 ? (
                   <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No pending slips found.</td></tr>
                 ) : (
-                  pendingCollections.filter(d => d.type === 'INSTALLMENT').map(due => (
-                    <tr key={due.due_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  pendingCollections.filter(d => d.type === 'INSTALLMENT' && (d.status === 0 || d.status === '0')).map((due, idx) => (
+                    <tr key={`slip-${due.due_id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{due.member_name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{due.member_code}</div>
@@ -1632,8 +1633,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 {commissions.filter(c => c.transaction_type === 'JOINING_FEE').length === 0 ? (
                   <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No collected joining fees found.</td></tr>
                 ) : (
-                  commissions.filter(c => c.transaction_type === 'JOINING_FEE').map(comm => (
-                    <tr key={comm.reference_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  commissions.filter(c => c.transaction_type === 'JOINING_FEE').map((comm, idx) => (
+                    <tr key={`comm-fee-${comm.reference_id || idx}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{comm.member_name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{comm.member_code}</div>
@@ -1668,8 +1669,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 {commissions.filter(c => c.transaction_type === 'INSTALLMENT').length === 0 ? (
                   <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No paid slips found.</td></tr>
                 ) : (
-                  commissions.filter(c => c.transaction_type === 'INSTALLMENT').map(comm => (
-                    <tr key={comm.reference_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  commissions.filter(c => c.transaction_type === 'INSTALLMENT').map((comm, idx) => (
+                    <tr key={`comm-slip-${comm.reference_id || idx}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{comm.member_name}</div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{comm.member_code}</div>

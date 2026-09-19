@@ -16,7 +16,7 @@ const mainNav = [
   { name: 'Members', path: '/members', icon: Users },
   { name: 'Programs', path: '/marriages', icon: Heart },
   { name: 'Payment Campaigns', path: '/payments', icon: Wallet },
-  { name: 'Payment Requests & QR', path: '/admin/payment-requests', icon: CheckSquare },
+  { name: 'Payment Requests & QR', path: '/admin/payment-requests', icon: CheckSquare, badgeKey: 'payment' },
 ];
 
 export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
@@ -24,19 +24,27 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [pendingPaymentCount, setPendingPaymentCount] = useState(0);
 
   useEffect(() => {
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       try {
-        const res = await apiRequest('/api/admin/agent-requests');
-        if (res && res.s === 1 && Array.isArray(res.r)) {
-          setPendingRequestsCount(res.r.length);
+        const [agentRes, paymentRes] = await Promise.all([
+          apiRequest('/api/admin/agent-requests'),
+          apiRequest('/api/admin/payment-submissions')
+        ]);
+        if (agentRes && agentRes.s === 1 && Array.isArray(agentRes.r)) {
+          setPendingRequestsCount(agentRes.r.filter(r => r.type !== 'payment').length);
+        }
+        if (paymentRes && paymentRes.s === 1 && Array.isArray(paymentRes.r)) {
+          const pending = paymentRes.r.filter(p => (p.status === 0 || p.is_submission_pending) && p.status !== 1 && p.status !== 2);
+          setPendingPaymentCount(pending.length);
         }
       } catch (e) {
-        console.error('Failed to fetch pending requests count', e);
+        console.error('Failed to fetch sidebar counts', e);
       }
     };
-    fetchCount();
+    fetchCounts();
   }, [pathname]);
 
   const handleLogout = () => {
@@ -88,14 +96,15 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
 
 
         <ul style={{ marginBottom: '24px' }}>
-          {mainNav.map(({ name, path, icon: Icon }) => {
+          {mainNav.map(({ name, path, icon: Icon, badgeKey }) => {
             const active = pathname === path;
+            const badge = badgeKey === 'payment' ? pendingPaymentCount : 0;
             return (
               <li key={name}>
                 <Link href={path} style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  justifyContent: 'space-between',
                   padding: '9px 12px',
                   borderRadius: '10px',
                   marginBottom: '2px',
@@ -110,8 +119,24 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
                   onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--primary-light)'; e.currentTarget.style.color = 'var(--primary)'; } }}
                   onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; } }}
                 >
-                  <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />
-                  {name}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Icon size={18} strokeWidth={active ? 2.5 : 2} style={{ flexShrink: 0 }} />
+                    {name}
+                  </div>
+                  {badge > 0 && (
+                    <span style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      padding: '2px 6px',
+                      borderRadius: '99px',
+                      minWidth: '20px',
+                      textAlign: 'center'
+                    }}>
+                      {badge}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
