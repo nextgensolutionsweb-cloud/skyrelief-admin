@@ -355,13 +355,13 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
         </div>
 
         {/* Selected Married Members Table */}
-        <div className="premium-card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div className="card" style={{ padding: '0', overflow: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafcff' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a' }}>Selected Married Members</h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Members whose marriages triggered this collection.</p>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Selected Married Members</h2>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>Members whose marriages triggered this collection.</p>
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="premium-table-container" style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '850px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Member Code</th>
@@ -419,10 +419,10 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
         </div>
 
         {/* Payment Dues Table */}
-        <div className="premium-card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div className="card" style={{ padding: '0', overflow: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafcff' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a' }}>Member Payment List</h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748b' }}>Track collection statuses from all active members.</p>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Member Payment List</h2>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>Track collection statuses from all active members.</p>
           </div>
           
           <div className="no-print" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '12px' }}>
@@ -433,9 +433,9 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
                   key={t}
                   onClick={() => setDuesTab(t)}
                   style={{
-                    padding: '6px 16px',
+                    padding: '5px 14px',
                     borderRadius: '9999px',
-                    fontSize: '0.8rem',
+                    fontSize: '0.78rem',
                     fontWeight: '600',
                     border: duesTab === t ? 'none' : '1px solid #e8edf2',
                     background: duesTab === t ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : '#fff',
@@ -462,7 +462,8 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
             </div>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
+          <div className="premium-table-container" style={{ overflowX: 'auto' }}>
+
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>

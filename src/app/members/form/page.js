@@ -544,152 +544,179 @@ export default function MemberFormPage() {
   }
 
   return (
-    <div style={{ maxWidth: '960px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button
-          onClick={() => router.back()}
-          className="btn-secondary"
-          style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
-        >
-          <ArrowLeft size={16} /> <span>Back</span>
-        </button>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>
-            {isEditMode ? 'Edit Member Profile' : 'Add New Member'}
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px' }}>
-            {isEditMode ? `Update details for ${form.first_name} ${form.last_name}` : 'Fill form fields to register a new member'}
-          </p>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Top Bar Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button 
+            type="button"
+            onClick={() => router.back()} 
+            className="btn-secondary"
+            style={{ padding: '8px 16px', borderRadius: '12px', border: '1px solid #e8edf2', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', color: '#475569' }}
+          >
+            <ArrowLeft size={18} /> <span>Back</span>
+          </button>
+          <div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+              {isEditMode ? 'Edit Member Profile' : 'Add New Member'}
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '3px', margin: 0 }}>
+              {isEditMode ? `Update details and plan records for ${form.first_name || ''} ${form.last_name || ''}` : 'Fill in registration fields to onboard a new foundation member'}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            type="button" 
+            onClick={() => router.back()} 
+            className="btn-secondary" 
+            style={{ padding: '10px 20px', borderRadius: '12px', fontWeight: '600', fontSize: '0.9rem' }}
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            onClick={handleSave} 
+            disabled={saving} 
+            className="btn-primary" 
+            style={{ padding: '10px 24px', borderRadius: '12px', fontWeight: '700', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
+          >
+            {saving ? (
+              <>
+                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <span>Saving Member...</span>
+              </>
+            ) : (
+              <span>{isEditMode ? 'Update Member Profile' : 'Create Member'}</span>
+            )}
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Card 1: Profile & Personal */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            👤 Profile & Personal Information
-          </h2>
+      <form onSubmit={handleSave}>
+        <div className="grid-responsive-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '24px', alignItems: 'start' }}>
+          
+          {/* LEFT COLUMN: Main Inputs */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* Card 1: Profile & Personal */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', fontWeight: '700', fontSize: '1.1rem' }}>
+                  👤
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Personal & Profile Information</h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Full legal name, contact numbers, gender, DOB, and login password</span>
+                </div>
+              </div>
 
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '20px' }}>
-            {/* Profile Image Uploader */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2', width: '200px', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Profile Photo</span>
-              <div style={{ width: '100%', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.profile || form.profile) ? (
-                  <img src={previews.profile || getImageUrl(form.profile)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={24} style={{ margin: '0 auto 6px' }} />
-                    <span style={{ fontSize: '0.68rem' }}>No photo</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div className="grid-r-3" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>First Name <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="text" required value={form.first_name} onChange={e => handleInputChange('first_name', e.target.value)} className="premium-input" placeholder="e.g. Sanjaybhai" style={{ width: '100%' }} />
                   </div>
-                )}
-              </div>
-              <input type="file" id="profile-upload" accept="image/*" onChange={e => handleFileChange(e, 'profile')} style={{ display: 'none' }} />
-              <label htmlFor="profile-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Upload Image
-              </label>
-            </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Middle Name</label>
+                    <input type="text" value={form.middle_name} onChange={e => handleInputChange('middle_name', e.target.value)} className="premium-input" placeholder="Father's / Husband's Name" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Last Name <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="text" required value={form.last_name} onChange={e => handleInputChange('last_name', e.target.value)} className="premium-input" placeholder="e.g. Mali" style={{ width: '100%' }} />
+                  </div>
+                </div>
 
-            {/* Personal Inputs */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '280px' }}>
-              <div className="grid-r-3" style={{ gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>First Name *</label>
-                  <input type="text" required value={form.first_name} onChange={e => handleInputChange('first_name', e.target.value)} className="premium-input" placeholder="Your First Name" style={{ width: '100%' }} />
+                <div className="grid-r-3" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="text" required value={form.phone} onChange={e => handleInputChange('phone', e.target.value)} className="premium-input" placeholder="10-digit mobile" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Gender <span style={{ color: '#ef4444' }}>*</span></label>
+                    <select value={form.gender} onChange={e => handleInputChange('gender', e.target.value)} className="premium-input" style={{ width: '100%', background: '#fff' }}>
+                      <option value="MALE">Male</option>
+                      <option value="FEMALE">Female</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Date of Birth <span style={{ color: '#ef4444' }}>*</span></label>
+                    <input type="date" required value={form.dob} max={todayStr} min={minDateStr} onChange={e => handleInputChange('dob', e.target.value)} className="premium-input" style={{ width: '100%' }} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Middle Name</label>
-                  <input type="text" value={form.middle_name} onChange={e => handleInputChange('middle_name', e.target.value)} className="premium-input" placeholder="Your Middle Name" style={{ width: '100%' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Last Name *</label>
-                  <input type="text" required value={form.last_name} onChange={e => handleInputChange('last_name', e.target.value)} className="premium-input" placeholder="Your Last Name" style={{ width: '100%' }} />
-                </div>
-              </div>
 
-              <div className="grid-r-3" style={{ gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Mobile Number *</label>
-                  <input type="text" required value={form.phone} onChange={e => handleInputChange('phone', e.target.value)} className="premium-input" placeholder="9876543211" style={{ width: '100%' }} />
+                <div className="grid-r-3" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Age (Years)</label>
+                    <input type="text" value={form.age} readOnly className="premium-input" placeholder="Auto calculated" style={{ width: '100%', background: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Alternate Mobile</label>
+                    <input type="text" value={form.alt_mobile} onChange={e => handleInputChange('alt_mobile', e.target.value)} className="premium-input" placeholder="Alternate phone" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Email Address</label>
+                    <input type="email" value={form.email} onChange={e => handleInputChange('email', e.target.value)} className="premium-input" placeholder="member@domain.com" style={{ width: '100%' }} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Gender *</label>
-                  <select value={form.gender} onChange={e => handleInputChange('gender', e.target.value)} className="premium-input" style={{ width: '100%' }}>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Date of Birth *</label>
-                  <input type="date" required value={form.dob} max={todayStr} min={minDateStr} onChange={e => handleInputChange('dob', e.target.value)} className="premium-input" style={{ width: '100%' }} />
-                </div>
-              </div>
 
-              <div className="grid-r-3" style={{ gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Age (Years)</label>
-                  <input type="text" value={form.age} readOnly className="premium-input" placeholder="28" style={{ width: '100%', background: '#f1f5f9', cursor: 'not-allowed' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Alternate Mobile</label>
-                  <input type="text" value={form.alt_mobile} onChange={e => handleInputChange('alt_mobile', e.target.value)} className="premium-input" placeholder="9876543212" style={{ width: '100%' }} />
-                </div>
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }} className="grid-r-2 gap-16">
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Password {isEditMode ? '(Optional)' : '*'}</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ position: 'relative', flex: 1 }}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        required={!isEditMode}
-                        value={form.password || ''}
-                        onChange={e => handleInputChange('password', e.target.value)}
-                        className="premium-input"
-                        name="password"
-                        placeholder={isEditMode ? "Leave empty to keep current" : "Enter password"}
-                        style={{ width: '100%', paddingRight: '40px' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0', display: 'flex', alignItems: 'center' }}
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                    {!isEditMode && (
-                      <>
+                <div className="grid-r-2" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Password {isEditMode ? '(Optional to update)' : <span style={{ color: '#ef4444' }}>*</span>}
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          required={!isEditMode}
+                          value={form.password || ''}
+                          onChange={e => handleInputChange('password', e.target.value)}
+                          className="premium-input"
+                          name="password"
+                          placeholder={isEditMode ? "Leave blank to keep current" : "Enter password"}
+                          style={{ width: '100%', paddingRight: '40px' }}
+                        />
                         <button
                           type="button"
-                          onClick={handleGeneratePassword}
-                          className="btn-secondary"
-                          style={{ padding: '0 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '600' }}
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '0', display: 'flex', alignItems: 'center' }}
                         >
-                          Generate
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
-                        {form.password && (
+                      </div>
+                      {!isEditMode && (
+                        <>
                           <button
                             type="button"
-                            onClick={copyToClipboard}
+                            onClick={handleGeneratePassword}
                             className="btn-secondary"
-                            style={{ padding: '0 12px', borderRadius: '8px', display: 'flex', alignItems: 'center' }}
-                            title="Copy Password"
+                            style={{ padding: '0 14px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: '700', whiteSpace: 'nowrap' }}
                           >
-                            <Copy size={18} />
+                            Generate
                           </button>
-                        )}
-                      </>
-                    )}
+                          {form.password && (
+                            <button
+                              type="button"
+                              onClick={copyToClipboard}
+                              className="btn-secondary"
+                              style={{ padding: '0 12px', borderRadius: '10px', display: 'flex', alignItems: 'center' }}
+                              title="Copy Password"
+                            >
+                              <Copy size={16} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Confirm Password {(!isEditMode || (isEditMode && form.password)) ? '*' : ''}</label>
-                  <div style={{ position: 'relative', flex: 1 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Confirm Password {(!isEditMode || (isEditMode && form.password)) ? <span style={{ color: '#ef4444' }}>*</span> : ''}
+                    </label>
                     <input
                       type={showPassword ? "text" : "password"}
                       required={!isEditMode || (isEditMode && !!form.password)}
@@ -697,225 +724,294 @@ export default function MemberFormPage() {
                       onChange={e => handleInputChange('confirm_password', e.target.value)}
                       className="premium-input"
                       name="confirm_password"
-                      placeholder="Confirm password"
-                      style={{ width: '100%', paddingRight: '40px' }}
+                      placeholder="Re-enter password"
+                      style={{ width: '100%' }}
                     />
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Card 2: Plan Selection */}
-        {!isEditMode && (
-          <div className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              💳 Insurance Plan Information
-            </h2>
-            <div className="grid-r-2" style={{ gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Insurance Plan *</label>
-                <select value={form.plan_id} onChange={e => handleInputChange('plan_id', e.target.value)} className="premium-input" style={{ width: '100%' }}>
-                  <option value="">Select Plan</option>
-                  {plans.map((p, idx) => <option key={p.id || idx} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Joining Fees (₹)</label>
-                <input type="number" min="0" value={form.fees} onChange={e => handleInputChange('fees', e.target.value)} className="premium-input" placeholder="e.g. 500" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Collected Fees (₹)</label>
-                <input type="number" min="0" value={form.collected_fees} onChange={e => handleInputChange('collected_fees', e.target.value)} className="premium-input" placeholder="e.g. 200" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Remaining Fees (₹)</label>
-                <input type="number" min="0" value={form.remaining_fees} onChange={e => handleInputChange('remaining_fees', e.target.value)} className="premium-input" placeholder="e.g. 300" style={{ width: '100%' }} />
-              </div>
-              {agents.length > 0 && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Assign to Agent *</label>
-                  <select value={form.agent_id} onChange={e => handleInputChange('agent_id', e.target.value)} className="premium-input" style={{ width: '100%' }}>
-                    <option value="">Select Agent</option>
-                    {agents.map((a, idx) => <option key={a.id || idx} value={a.id}>{a.first_name} {a.last_name}</option>)}
-                  </select>
+            {/* Card 2: Insurance Plan Information */}
+            {!isEditMode && (
+              <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', fontWeight: '700', fontSize: '1.1rem' }}>
+                    💳
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Insurance Plan Details</h2>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Select foundation scheme, joining fees, and registering agent</span>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Card 3: Address Details */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            📍 Address Information
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Street Address</label>
-              <input type="text" value={form.address} onChange={e => handleInputChange('address', e.target.value)} className="premium-input" placeholder="123, Ring Road" style={{ width: '100%' }} />
-            </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div className="grid-r-2" style={{ gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Insurance Plan <span style={{ color: '#ef4444' }}>*</span></label>
+                      <select value={form.plan_id} onChange={e => handleInputChange('plan_id', e.target.value)} className="premium-input" style={{ width: '100%', background: '#fff' }}>
+                        <option value="">Select Plan</option>
+                        {plans.map((p, idx) => <option key={p.id || idx} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </div>
 
-            <div className="grid-r-4" style={{ gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Village / Landmark</label>
-                <input type="text" value={form.village} onChange={e => handleInputChange('village', e.target.value)} className="premium-input" placeholder="Near Temple" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>City</label>
-                <input type="text" value={form.city} onChange={e => handleInputChange('city', e.target.value)} className="premium-input" placeholder="Ahmedabad" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>State</label>
-                <input type="text" value={form.state} onChange={e => handleInputChange('state', e.target.value)} className="premium-input" placeholder="Gujarat" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>PIN Code</label>
-                <input type="text" value={form.pin} onChange={e => handleInputChange('pin', e.target.value)} className="premium-input" placeholder="380007" style={{ width: '100%' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: KYC Details */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            🪪 KYC Verification Information
-          </h2>
-          <div className="grid-r-2" style={{ gap: '16px', marginBottom: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar Number</label>
-              <input type="text" value={form.aadhaar} onChange={e => handleInputChange('aadhaar', e.target.value)} className="premium-input" placeholder="123412341234" style={{ width: '100%' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>PAN Number</label>
-              <input type="text" value={form.pan} onChange={e => handleInputChange('pan', e.target.value)} className="premium-input" placeholder="ABCDE1234F" style={{ width: '100%', textTransform: 'uppercase' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            {/* Aadhaar Front */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Aadhaar Front</span>
-              <div style={{ width: '100%', height: '110px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.aadhaar_front || form.aadhaar_front) ? (
-                  <img src={previews.aadhaar_front || getImageUrl(form.aadhaar_front)} alt="Aadhaar Front" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={20} style={{ margin: '0 auto 4px' }} />
-                    <span style={{ fontSize: '0.65rem' }}>No image</span>
+                    {agents.length > 0 && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Assign to Agent <span style={{ color: '#ef4444' }}>*</span></label>
+                        <select value={form.agent_id} onChange={e => handleInputChange('agent_id', e.target.value)} className="premium-input" style={{ width: '100%', background: '#fff' }}>
+                          <option value="">Select Agent</option>
+                          {agents.map((a, idx) => <option key={a.id || idx} value={a.id}>{a.first_name} {a.last_name}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <input type="file" id="aadhaar-front-upload" accept="image/*" onChange={e => handleFileChange(e, 'aadhaar_front')} style={{ display: 'none' }} />
-              <label htmlFor="aadhaar-front-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Select Front
-              </label>
-            </div>
 
-            {/* Aadhaar Back */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Aadhaar Back</span>
-              <div style={{ width: '100%', height: '110px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.aadhaar_back || form.aadhaar_back) ? (
-                  <img src={previews.aadhaar_back || getImageUrl(form.aadhaar_back)} alt="Aadhaar Back" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={20} style={{ margin: '0 auto 4px' }} />
-                    <span style={{ fontSize: '0.65rem' }}>No image</span>
+                  <div className="grid-r-3" style={{ gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Joining Fees (₹)</label>
+                      <input type="number" min="0" value={form.fees} onChange={e => handleInputChange('fees', e.target.value)} className="premium-input" placeholder="500" style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Collected Fees (₹)</label>
+                      <input type="number" min="0" value={form.collected_fees} onChange={e => handleInputChange('collected_fees', e.target.value)} className="premium-input" placeholder="200" style={{ width: '100%' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Remaining Fees (₹)</label>
+                      <input type="number" min="0" value={form.remaining_fees} readOnly className="premium-input" placeholder="300" style={{ width: '100%', background: '#f8fafc', color: '#64748b' }} />
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
-              <input type="file" id="aadhaar-back-upload" accept="image/*" onChange={e => handleFileChange(e, 'aadhaar_back')} style={{ display: 'none' }} />
-              <label htmlFor="aadhaar-back-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Select Back
-              </label>
-            </div>
-
-            {/* Guardian Aadhaar Image */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Guardian Aadhaar</span>
-              <div style={{ width: '100%', height: '110px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {(previews.guardian_aadhaar_img || form.guardian_aadhaar_img) ? (
-                  <img src={previews.guardian_aadhaar_img || getImageUrl(form.guardian_aadhaar_img)} alt="Guardian Aadhaar" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={20} style={{ margin: '0 auto 4px' }} />
-                    <span style={{ fontSize: '0.65rem' }}>No image</span>
-                  </div>
-                )}
-              </div>
-              <input type="file" id="guardian-aadhaar-upload" accept="image/*" onChange={e => handleFileChange(e, 'guardian_aadhaar_img')} style={{ display: 'none' }} />
-              <label htmlFor="guardian-aadhaar-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Select Aadhaar
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 5: Family & Additional details */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            👪 Family & Additional Information
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="grid-r-2" style={{ gap: '20px', marginBottom: '16px' }}>
-              {/* Father Section Removed */}
-
-
-            </div>
-
-            <div className="grid-r-3" style={{ gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Guardian Name</label>
-                <input type="text" value={form.guardian} onChange={e => handleInputChange('guardian', e.target.value)} className="premium-input" placeholder="Guardian's name" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Guardian Relation</label>
-                <input type="text" value={form.relation} onChange={e => handleInputChange('relation', e.target.value)} className="premium-input" placeholder="e.g. Uncle" style={{ width: '100%' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Guardian Aadhaar No.</label>
-                <input type="text" value={form.guardian_aadhaar_number} onChange={e => handleInputChange('guardian_aadhaar_number', e.target.value)} className="premium-input" placeholder="123412341234" style={{ width: '100%' }} />
-              </div>
-            </div>
-
-            <div className="grid-r-2" style={{ gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Age (Years)</label>
-                <input type="text" value={form.age} readOnly className="premium-input" placeholder="Calculated from DOB" style={{ width: '100%', backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="btn-secondary"
-            style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary"
-            style={{ flex: 2, padding: '12px', borderRadius: '9999px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          >
-            {saving ? (
-              <>
-                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                <span>Saving Profile...</span>
-              </>
-            ) : (
-              <span>{isEditMode ? 'Update Member' : 'Create Member'}</span>
             )}
-          </button>
+
+            {/* Card 3: Address Details */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', fontWeight: '700', fontSize: '1.1rem' }}>
+                  📍
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Residential Address Details</h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Complete street address, village landmark, city and pincode</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div className="grid-r-2" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Street Address</label>
+                    <input type="text" value={form.address} onChange={e => handleInputChange('address', e.target.value)} className="premium-input" placeholder="House/Flat No., Building, Street" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Village / Landmark</label>
+                    <input type="text" value={form.village} onChange={e => handleInputChange('village', e.target.value)} className="premium-input" placeholder="Near Temple / Area" style={{ width: '100%' }} />
+                  </div>
+                </div>
+
+                <div className="grid-r-3" style={{ gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>City</label>
+                    <input type="text" value={form.city} onChange={e => handleInputChange('city', e.target.value)} className="premium-input" placeholder="e.g. Ahmedabad" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>State</label>
+                    <input type="text" value={form.state} onChange={e => handleInputChange('state', e.target.value)} className="premium-input" placeholder="e.g. Gujarat" style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Pincode</label>
+                    <input type="text" value={form.pin} onChange={e => handleInputChange('pin', e.target.value)} className="premium-input" placeholder="6-digit pincode" style={{ width: '100%' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Family & Guardian Information */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '14px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6', fontWeight: '700', fontSize: '1.1rem' }}>
+                  👪
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Family & Guardian Information</h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Guardian details, relation, and guardian Aadhaar number</span>
+                </div>
+              </div>
+
+              <div className="grid-r-3" style={{ gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Guardian Name</label>
+                  <input type="text" value={form.guardian} onChange={e => handleInputChange('guardian', e.target.value)} className="premium-input" placeholder="Guardian's name" style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Guardian Relation</label>
+                  <input type="text" value={form.relation} onChange={e => handleInputChange('relation', e.target.value)} className="premium-input" placeholder="e.g. Uncle / Father" style={{ width: '100%' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Guardian Aadhaar No.</label>
+                  <input type="text" value={form.guardian_aadhaar_number} onChange={e => handleInputChange('guardian_aadhaar_number', e.target.value)} className="premium-input" placeholder="12-digit Aadhaar" style={{ width: '100%' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Card 5: Administrative Notes */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(236, 72, 153, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899', fontWeight: '700', fontSize: '1.1rem' }}>
+                  📝
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Administrative Notes</h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Internal comments or special remarks</span>
+                </div>
+              </div>
+              <textarea 
+                value={form.notes} 
+                onChange={e => handleInputChange('notes', e.target.value)} 
+                className="premium-input" 
+                placeholder="Add optional administrative notes or remarks about this member..." 
+                rows={3} 
+                style={{ width: '100%', resize: 'none', fontFamily: 'inherit', borderRadius: '12px' }} 
+              />
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: Profile Photo & KYC Documents */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* Card A: Profile Photo Card */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📸 Profile Photo
+              </h2>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ width: '130px', height: '130px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {(previews.profile || form.profile) ? (
+                    <img src={previews.profile || getImageUrl(form.profile)} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '12px' }}>
+                      <Upload size={28} style={{ margin: '0 auto 6px', opacity: 0.6 }} />
+                      <span style={{ fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Upload Photo</span>
+                    </div>
+                  )}
+                </div>
+                
+                <input type="file" id="profile-upload" accept="image/*" onChange={e => handleFileChange(e, 'profile')} style={{ display: 'none' }} />
+                <label htmlFor="profile-upload" className="btn-secondary" style={{ width: '100%', padding: '9px 16px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', borderRadius: '10px', boxSizing: 'border-box' }}>
+                  {(previews.profile || form.profile) ? 'Change Photo' : 'Select Photo'}
+                </label>
+              </div>
+            </div>
+
+            {/* Card B: Verification & KYC Documents */}
+            <div className="card" style={{ padding: '24px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🪪 Verification & KYC Documents
+              </h2>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Aadhaar Number</label>
+                  <input type="text" value={form.aadhaar} onChange={e => handleInputChange('aadhaar', e.target.value)} className="premium-input" placeholder="12-digit Aadhaar" style={{ width: '100%' }} />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>PAN Number</label>
+                  <input type="text" value={form.pan} onChange={e => handleInputChange('pan', e.target.value)} className="premium-input" placeholder="e.g. ABCDE1234F" style={{ width: '100%', textTransform: 'uppercase' }} />
+                </div>
+
+                {/* File Upload Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                  {/* Aadhaar Front */}
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e8edf2', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Aadhaar Front</span>
+                    <div style={{ height: '75px', borderRadius: '8px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {(previews.aadhaar_front || form.aadhaar_front) ? (
+                        <img src={previews.aadhaar_front || getImageUrl(form.aadhaar_front)} alt="Aadhaar Front" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Upload size={18} style={{ color: '#94a3b8' }} />
+                      )}
+                    </div>
+                    <input type="file" id="aadhaar-front-upload" accept="image/*" onChange={e => handleFileChange(e, 'aadhaar_front')} style={{ display: 'none' }} />
+                    <label htmlFor="aadhaar-front-upload" className="btn-secondary" style={{ padding: '6px', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', borderRadius: '6px' }}>
+                      Upload Front
+                    </label>
+                  </div>
+
+                  {/* Aadhaar Back */}
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e8edf2', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Aadhaar Back</span>
+                    <div style={{ height: '75px', borderRadius: '8px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {(previews.aadhaar_back || form.aadhaar_back) ? (
+                        <img src={previews.aadhaar_back || getImageUrl(form.aadhaar_back)} alt="Aadhaar Back" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Upload size={18} style={{ color: '#94a3b8' }} />
+                      )}
+                    </div>
+                    <input type="file" id="aadhaar-back-upload" accept="image/*" onChange={e => handleFileChange(e, 'aadhaar_back')} style={{ display: 'none' }} />
+                    <label htmlFor="aadhaar-back-upload" className="btn-secondary" style={{ padding: '6px', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', borderRadius: '6px' }}>
+                      Upload Back
+                    </label>
+                  </div>
+
+                  {/* PAN Card Image */}
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e8edf2', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>PAN Image</span>
+                    <div style={{ height: '75px', borderRadius: '8px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {(previews.pan_img || form.pan_img) ? (
+                        <img src={previews.pan_img || getImageUrl(form.pan_img)} alt="PAN Card" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Upload size={18} style={{ color: '#94a3b8' }} />
+                      )}
+                    </div>
+                    <input type="file" id="pan-image-upload" accept="image/*" onChange={e => handleFileChange(e, 'pan_img')} style={{ display: 'none' }} />
+                    <label htmlFor="pan-image-upload" className="btn-secondary" style={{ padding: '6px', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', borderRadius: '6px' }}>
+                      Upload PAN
+                    </label>
+                  </div>
+
+                  {/* Guardian Aadhaar */}
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e8edf2', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569' }}>Guardian Aadhaar</span>
+                    <div style={{ height: '75px', borderRadius: '8px', overflow: 'hidden', background: '#fff', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {(previews.guardian_aadhaar_img || form.guardian_aadhaar_img) ? (
+                        <img src={previews.guardian_aadhaar_img || getImageUrl(form.guardian_aadhaar_img)} alt="Guardian Aadhaar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Upload size={18} style={{ color: '#94a3b8' }} />
+                      )}
+                    </div>
+                    <input type="file" id="guardian-aadhaar-upload" accept="image/*" onChange={e => handleFileChange(e, 'guardian_aadhaar_img')} style={{ display: 'none' }} />
+                    <label htmlFor="guardian-aadhaar-upload" className="btn-secondary" style={{ padding: '6px', fontSize: '0.7rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', borderRadius: '6px' }}>
+                      Upload Aadhaar
+                    </label>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Card C: Quick Submit Actions */}
+            <div className="card" style={{ padding: '20px', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+              <button 
+                type="submit" 
+                disabled={saving} 
+                className="btn-primary" 
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: '700', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
+              >
+                {saving ? (
+                  <>
+                    <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span>Saving Member...</span>
+                  </>
+                ) : (
+                  <span>{isEditMode ? 'Update Member Profile' : 'Submit & Register Member'}</span>
+                )}
+              </button>
+            </div>
+
+          </div>
+
         </div>
       </form>
     </div>

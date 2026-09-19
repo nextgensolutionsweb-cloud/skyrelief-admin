@@ -246,19 +246,20 @@ export default function PaymentRequestsPage() {
   });
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Payment Requests & QR Manager</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>Payment Requests & QR Manager</h1>
             {pendingCount > 0 && (
-              <span style={{ background: '#ef4444', color: 'white', fontSize: '0.75rem', fontWeight: '800', padding: '2px 8px', borderRadius: '999px' }}>
+              <span style={{ background: '#ef4444', color: 'white', fontSize: '0.75rem', fontWeight: '800', padding: '2px 10px', borderRadius: '999px' }}>
                 {pendingCount} Pending
               </span>
             )}
           </div>
-          <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '4px', margin: 0 }}>
+          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '4px', margin: 0 }}>
             Review kit payment requests submitted by members & agents, verify payment screenshots, and configure official Bank QR.
           </p>
         </div>
@@ -272,8 +273,8 @@ export default function PaymentRequestsPage() {
               padding: '9px 16px', 
               borderRadius: '10px', 
               border: '1px solid #c7d2fe', 
-              background: showBankSettings ? '#4f46e5' : '#e0e7ff', 
-              color: showBankSettings ? 'white' : '#3730a3', 
+              background: showBankSettings ? '#0284c7' : '#e0f2fe', 
+              color: showBankSettings ? 'white' : '#0369a1', 
               cursor: 'pointer', 
               fontWeight: '700', 
               fontSize: '0.85rem',
@@ -294,24 +295,24 @@ export default function PaymentRequestsPage() {
 
       {/* Collapsible Bank QR & UPI Configuration Card */}
       {showBankSettings && (
-        <div style={{
+        <div className="card" style={{
           background: 'white',
-          borderRadius: '16px',
+          borderRadius: '14px',
           padding: '24px',
           marginBottom: '24px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
-          border: '1px solid #e0e7ff'
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+          border: '1px solid #e2e8f0'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '24px' }}>
             {/* Form */}
             <div style={{ flex: '1 1 500px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7', fontWeight: 'bold' }}>
                   🏦
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Official Bank UPI & QR Settings</h3>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>These details & QR code are displayed in the Member and Agent mobile apps for kit payments.</p>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Official Bank UPI & QR Settings</h3>
+                  <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>These details & QR code are displayed in the Member and Agent mobile apps for kit payments.</p>
                 </div>
               </div>
 
@@ -324,7 +325,8 @@ export default function PaymentRequestsPage() {
                       value={bankSettings.bank_name}
                       onChange={(e) => setBankSettings({ ...bankSettings, bank_name: e.target.value })}
                       placeholder="e.g. State Bank of India"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                       required
                     />
                   </div>
@@ -335,7 +337,8 @@ export default function PaymentRequestsPage() {
                       value={bankSettings.bank_upi_id}
                       onChange={(e) => setBankSettings({ ...bankSettings, bank_upi_id: e.target.value })}
                       placeholder="e.g. skyrelief@sbi"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #6366f1', fontSize: '0.9rem', outline: 'none', fontWeight: '700', color: '#4f46e5' }}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1.5px solid #0284c7', fontSize: '0.85rem', fontWeight: '700', color: '#0284c7' }}
                       required
                     />
                   </div>
@@ -346,7 +349,8 @@ export default function PaymentRequestsPage() {
                       value={bankSettings.bank_account_no}
                       onChange={(e) => setBankSettings({ ...bankSettings, bank_account_no: e.target.value })}
                       placeholder="e.g. 123456789012"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                     />
                   </div>
                   <div>
@@ -356,7 +360,8 @@ export default function PaymentRequestsPage() {
                       value={bankSettings.bank_ifsc}
                       onChange={(e) => setBankSettings({ ...bankSettings, bank_ifsc: e.target.value })}
                       placeholder="e.g. SBIN0001234"
-                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', textTransform: 'uppercase' }}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', textTransform: 'uppercase' }}
                     />
                   </div>
                 </div>
@@ -364,15 +369,16 @@ export default function PaymentRequestsPage() {
                 <button
                   type="submit"
                   disabled={savingBankSettings}
+                  className="btn-primary"
                   style={{
-                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    background: '#0284c7',
                     color: 'white',
                     padding: '10px 22px',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     border: 'none',
                     fontWeight: '700',
                     cursor: savingBankSettings ? 'not-allowed' : 'pointer',
-                    fontSize: '0.9rem'
+                    fontSize: '0.85rem'
                   }}
                 >
                   {savingBankSettings ? 'Saving Settings...' : 'Save Bank Details'}
@@ -389,7 +395,7 @@ export default function PaymentRequestsPage() {
               border: '1px dashed #cbd5e1',
               textAlign: 'center'
             }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
+              <div style={{ fontSize: '0.74rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '10px' }}>
                 Live App QR Preview
               </div>
               <div style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
@@ -408,28 +414,54 @@ export default function PaymentRequestsPage() {
       )}
 
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: 'white', borderRadius: '14px', padding: '18px 20px', border: '1px solid #fef3c7', borderLeft: '4px solid #f59e0b', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>Pending Review</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#d97706', marginTop: '4px' }}>{pendingCount}</div>
-          <div style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '2px' }}>Requests requiring admin action</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        
+        <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Review</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+              ⏳
+            </div>
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b45309' }}>{pendingCount}</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Requests requiring admin action</div>
         </div>
-        <div style={{ background: 'white', borderRadius: '14px', padding: '18px 20px', border: '1px solid #dcfce7', borderLeft: '4px solid #10b981', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>Approved & Settled</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#10b981', marginTop: '4px' }}>{approvedCount}</div>
-          <div style={{ fontSize: '0.75rem', color: '#065f46', marginTop: '2px' }}>Marked as paid in kit ledger</div>
+
+        <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Approved & Settled</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+              ✅
+            </div>
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#15803d' }}>{approvedCount}</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Marked as paid in kit ledger</div>
         </div>
-        <div style={{ background: 'white', borderRadius: '14px', padding: '18px 20px', border: '1px solid #fee2e2', borderLeft: '4px solid #ef4444', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#b91c1c', textTransform: 'uppercase' }}>Rejected Requests</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#ef4444', marginTop: '4px' }}>{rejectedCount}</div>
-          <div style={{ fontSize: '0.75rem', color: '#991b1b', marginTop: '2px' }}>Declined proof submissions</div>
+
+        <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rejected Requests</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+              ✕
+            </div>
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b91c1c' }}>{rejectedCount}</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>Declined proof submissions</div>
         </div>
-        <div style={{ background: 'white', borderRadius: '14px', padding: '18px 20px', border: '1px solid #e0e7ff', borderLeft: '4px solid #6366f1', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#4338ca', textTransform: 'uppercase' }}>Total Submissions</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#4f46e5', marginTop: '4px' }}>{submissions.length}</div>
-          <div style={{ fontSize: '0.75rem', color: '#3730a3', marginTop: '2px' }}>All recorded payment requests</div>
+
+        <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Submissions</span>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+              📋
+            </div>
+          </div>
+          <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#4338ca' }}>{submissions.length}</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>All recorded payment requests</div>
         </div>
+
       </div>
+
 
       {/* Submissions Section */}
       <div style={{
@@ -510,13 +542,14 @@ export default function PaymentRequestsPage() {
             <div>Loading payment requests...</div>
           </div>
         ) : (
-          <div style={{
+          <div className="premium-table-container" style={{
             overflowX: 'auto',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
             scrollbarColor: '#cbd5e1 transparent'
           }}>
-            <table style={{ width: '100%', minWidth: '1360px', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
+            <table style={{ width: '100%', minWidth: '1200px', borderCollapse: 'separate', borderSpacing: 0, textAlign: 'left' }}>
+
               <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <tr>
                   <th style={{ padding: '16px 20px', fontSize: '0.74rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', width: '180px' }}>KIT / CAMPAIGN</th>

@@ -349,250 +349,359 @@ export default function MarriageFormPage() {
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button
-          onClick={() => router.back()}
-          className="btn-secondary"
-          style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
-        >
-          <ArrowLeft size={16} /> <span>Back</span>
-        </button>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>
-            {isEditMode ? 'Edit Event Record' : 'Register New Event'}
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px' }}>
-            {isEditMode ? 'Update event details and replace documents' : 'Fill details to add a new event'}
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Marriage & Member Information Card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            💍 Event & Member Information
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-            {/* Insurance Plan Select */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Insurance Plan *</label>
-              <select
-                value={form.plan_id}
-                required
-                onChange={e => handlePlanChange(e.target.value)}
-                className="premium-input"
-                style={{ width: '100%' }}
-              >
-                <option value="">Select Plan</option>
-                {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-
-            {/* Searchable Member Selection */}
-            <div style={{ position: 'relative' }} ref={dropdownRef}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Select Member *</label>
-              <input
-                type="text"
-                disabled={!form.plan_id}
-                value={memberSearch}
-                onChange={e => {
-                  setMemberSearch(e.target.value);
-                  setShowMemberDropdown(true);
-                  if (!e.target.value) {
-                    setForm(prev => ({ ...prev, member_id: '' }));
-                  }
-                }}
-                onFocus={() => {
-                  if (form.plan_id) {
-                    setShowMemberDropdown(true);
-                  }
-                }}
-                className="premium-input"
-                placeholder={
-                  !form.plan_id
-                    ? "Please select a plan first..."
-                    : loadingMembers
-                      ? "Loading members..."
-                      : "Search member by name or code..."
-                }
-                style={{
-                  width: '100%',
-                  cursor: !form.plan_id ? 'not-allowed' : 'text',
-                  opacity: !form.plan_id ? 0.6 : 1,
-                  background: !form.plan_id ? '#f1f5f9' : '#fff'
-                }}
-              />
-
-              {showMemberDropdown && form.plan_id && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  maxHeight: '220px',
-                  overflowY: 'auto',
-                  background: 'white',
-                  border: '1px solid #e8edf2',
-                  borderRadius: '8px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                  zIndex: 100,
-                  marginTop: '4px'
-                }}>
-                  {loadingMembers ? (
-                    <div style={{ padding: '16px', fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <div className="spinner" style={{ width: '14px', height: '14px', border: '2px solid #f1f5f9', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span>Loading plan members...</span>
-                    </div>
-                  ) : filteredMembers.length > 0 ? (
-                    filteredMembers.map(m => (
-                      <div
-                        key={m.id}
-                        onClick={() => selectMember(m)}
-                        style={{
-                          padding: '10px 14px',
-                          fontSize: '0.82rem',
-                          color: '#334155',
-                          cursor: 'pointer',
-                          borderBottom: '1px solid #f8fafc',
-                          transition: 'background 0.1s'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >
-                        <div style={{ fontWeight: '700' }}>
-                          {getMemCode(m)} - {getMemName(m)}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ padding: '16px', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
-                      {members.length === 0 ? "No eligible members available for this plan." : `No members found matching "${memberSearch}"`}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Event Date */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>{isDeathPlan ? 'Death Date *' : 'Marriage Date *'}</label>
-              <input
-                type="date"
-                required
-                value={form.marriage_date}
-                onChange={e => handleInputChange('marriage_date', e.target.value)}
-                className="premium-input"
-                style={{ width: '100%' }}
-              />
-            </div>
-
-            {/* Amount Given (Only for Death Plans) */}
-            {isDeathPlan && (
-              <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Amount Given (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  value={form.amount_given}
-                  onChange={e => handleInputChange('amount_given', e.target.value)}
-                  className="premium-input"
-                  style={{ width: '100%' }}
-                  placeholder="Enter settlement amount"
-                />
-              </div>
-            )}
-
-            {/* Notes */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Administrative Notes</label>
-              <textarea
-                value={form.notes}
-                onChange={e => handleInputChange('notes', e.target.value)}
-                className="premium-input"
-                placeholder="Add notes about event, request context or approvals..."
-                rows={4}
-                style={{ width: '100%', resize: 'none', fontFamily: 'inherit' }}
-              />
-            </div>
-
-          </div>
-        </div>
-
-        {/* Document Upload Card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            📁 Documents
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Image Previews */}
-              <div style={{ width: '160px', height: '160px', borderRadius: '12px', overflow: 'hidden', border: '1.5px dashed #cbd5e1', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {cardPreview ? (
-                  <img src={cardPreview} alt="Invitation Card Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : existingCard ? (
-                  <img src={getImageUrl(existingCard)} alt="Invitation Card" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '10px' }}>
-                    <FileText size={32} style={{ margin: '0 auto 8px' }} />
-                    <span style={{ fontSize: '0.72rem' }}>No document uploaded</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Upload Input */}
-              <div style={{ flex: 1, minWidth: '240px' }}>
-                <input
-                  type="file"
-                  id="card-upload"
-                  accept="image/*,application/pdf"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="card-upload" className="btn-secondary" style={{ padding: '10px 18px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', border: '1.5px solid #e8edf2', borderRadius: '8px', background: 'white' }}>
-                  <Upload size={14} /> Upload Document
-                </label>
-                <span style={{ display: 'block', fontSize: '0.72rem', color: '#94a3b8', marginTop: '8px', lineHeight: '1.4' }}>
-                  {cardFile ? `Selected: ${cardFile.name}` : existingCard ? 'Currently has an uploaded invitation card. Choose file to replace it.' : 'Supports JPG, PNG or JPEG image formats.'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Submit Actions */}
-        <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Page Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             type="button"
             onClick={() => router.back()}
             className="btn-secondary"
-            style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
+            style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', background: '#fff', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}
           >
-            Cancel
+            <ArrowLeft size={16} /> <span>Back</span>
           </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary"
-            style={{ flex: 2, padding: '12px', borderRadius: '9999px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          >
-            {saving ? (
-              <>
-                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                <span>Saving Record...</span>
-              </>
-            ) : (
-              <span>{isEditMode ? 'Update Marriage Record' : 'Register Marriage'}</span>
-            )}
-          </button>
+          <div>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
+              {isEditMode ? 'Edit Marriage / Death Event' : 'Register New Marriage / Event'}
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px', margin: 0 }}>
+              {isEditMode ? 'Update record details and attached documents' : 'Fill in the event details and attach optional invitation cards or photos'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSave}>
+        <div className="grid-responsive-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '24px' }}>
+          
+          {/* Left Column: Details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            {/* Event & Member Info Card */}
+            <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
+                  💍
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                    Event & Member Information
+                  </h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Select plan and registered active member</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                
+                {/* Insurance Plan */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                    Insurance Plan <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    value={form.plan_id}
+                    required
+                    onChange={e => handlePlanChange(e.target.value)}
+                    className="premium-input"
+                    style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#0f172a', background: '#fff' }}
+                  >
+                    <option value="">Select Plan</option>
+                    {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+
+                {/* Member Selection */}
+                <div style={{ position: 'relative' }} ref={dropdownRef}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                    Select Member <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    disabled={!form.plan_id}
+                    value={memberSearch}
+                    onChange={e => {
+                      setMemberSearch(e.target.value);
+                      setShowMemberDropdown(true);
+                      if (!e.target.value) {
+                        setForm(prev => ({ ...prev, member_id: '' }));
+                      }
+                    }}
+                    onFocus={() => {
+                      if (form.plan_id) {
+                        setShowMemberDropdown(true);
+                      }
+                    }}
+                    className="premium-input"
+                    placeholder={
+                      !form.plan_id
+                        ? "Please select an insurance plan first..."
+                        : loadingMembers
+                          ? "Loading members..."
+                          : "Search member by name or member code..."
+                    }
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      padding: '0 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      cursor: !form.plan_id ? 'not-allowed' : 'text',
+                      opacity: !form.plan_id ? 0.6 : 1,
+                      background: !form.plan_id ? '#f8fafc' : '#fff'
+                    }}
+                  />
+
+                  {showMemberDropdown && form.plan_id && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      maxHeight: '240px',
+                      overflowY: 'auto',
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '10px',
+                      boxShadow: '0 12px 28px rgba(0,0,0,0.1)',
+                      zIndex: 100,
+                      marginTop: '6px'
+                    }}>
+                      {loadingMembers ? (
+                        <div style={{ padding: '16px', fontSize: '0.82rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid #e2e8f0', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                          <span>Fetching active members for this plan...</span>
+                        </div>
+                      ) : filteredMembers.length > 0 ? (
+                        filteredMembers.map(m => (
+                          <div
+                            key={m.id}
+                            onClick={() => selectMember(m)}
+                            style={{
+                              padding: '10px 14px',
+                              fontSize: '0.83rem',
+                              color: '#334155',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #f1f5f9',
+                              transition: 'background 0.1s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >
+                            <div style={{ fontWeight: '700', color: '#0f172a' }}>
+                              {getMemCode(m)} - {getMemName(m)}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ padding: '16px', fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center' }}>
+                          {members.length === 0 ? "No eligible members available for this plan." : `No members found matching "${memberSearch}"`}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Event Date & Amount (if applicable) */}
+                <div style={{ display: 'grid', gridTemplateColumns: isDeathPlan ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      {isDeathPlan ? 'Death Date' : 'Marriage Date'} <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={form.marriage_date}
+                      onChange={e => handleInputChange('marriage_date', e.target.value)}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  {isDeathPlan && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                        Amount Given (₹) <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        value={form.amount_given}
+                        onChange={e => handleInputChange('amount_given', e.target.value)}
+                        className="premium-input"
+                        placeholder="e.g. 50000"
+                        style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                    Administrative Notes
+                  </label>
+                  <textarea
+                    value={form.notes}
+                    onChange={e => handleInputChange('notes', e.target.value)}
+                    className="premium-input"
+                    placeholder="Add optional notes about event, request context or approvals..."
+                    rows={4}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', resize: 'vertical', fontFamily: 'inherit' }}
+                  />
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column: Documents & Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            {/* Documents Card */}
+            <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
+                  📁
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                    Document Attachment
+                  </h2>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Invitation card or proof document</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', border: '2px dashed #cbd5e1', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                  {cardPreview ? (
+                    <img src={cardPreview} alt="Card Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : existingCard ? (
+                    <img src={getImageUrl(existingCard)} alt="Invitation Card" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
+                      <FileText size={36} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
+                      <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#64748b', margin: 0 }}>No file selected</p>
+                      <span style={{ fontSize: '0.73rem' }}>Upload JPG, PNG or PDF</span>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ width: '100%', textAlign: 'center' }}>
+                  <input
+                    type="file"
+                    id="card-upload"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <label
+                    htmlFor="card-upload"
+                    className="btn-secondary"
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      fontSize: '0.83rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '10px',
+                      background: '#fff',
+                      color: '#334155'
+                    }}
+                  >
+                    <Upload size={16} /> Choose Document File
+                  </label>
+                  <span style={{ display: 'block', fontSize: '0.74rem', color: '#94a3b8', marginTop: '8px', lineHeight: '1.4' }}>
+                    {cardFile ? `Selected: ${cardFile.name}` : existingCard ? 'File currently uploaded. Click above to replace.' : 'Optional attachment'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions & Summary Card */}
+            <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px' }}>
+                Summary & Actions
+              </h3>
+              
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '0.78rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Plan:</span>
+                  <strong style={{ color: '#0f172a' }}>{selectedPlan ? selectedPlan.name : 'Not selected'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Member:</span>
+                  <strong style={{ color: '#0f172a' }}>{form.member_id ? 'Selected' : 'Not selected'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Date:</span>
+                  <strong style={{ color: '#0f172a' }}>{form.marriage_date || 'Not set'}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    fontWeight: '700',
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: '#0284c7',
+                    color: '#fff',
+                    border: 'none',
+                    cursor: saving ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {saving ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span>Saving Event...</span>
+                    </>
+                  ) : (
+                    <span>{isEditMode ? 'Update Event Record' : 'Register Event'}</span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="btn-secondary"
+                  style={{ width: '100%', padding: '10px', borderRadius: '10px', fontWeight: '600', fontSize: '0.83rem', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       </form>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 1024px) {
+          .grid-responsive-2col {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
+

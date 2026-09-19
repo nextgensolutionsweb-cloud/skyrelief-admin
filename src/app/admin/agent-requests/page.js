@@ -278,191 +278,212 @@ export default function AgentRequestsPage() {
   const totalLogPages = Math.ceil(logs.length / itemsPerPage);
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '4px' }}>Agent Requests Manager</h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-            Review agent requests for new member registrations and insurance plan assignments.
+          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', margin: 0, letterSpacing: '-0.025em' }}>Agent Requests Manager</h1>
+          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px', margin: 0 }}>
+            Review agent requests for new member registrations and insurance plan assignments
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('pending')}
           style={{
-            padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
-            background: activeTab === 'pending' ? 'white' : 'transparent',
-            color: activeTab === 'pending' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'pending' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            padding: '8px 18px',
+            borderRadius: '9999px',
+            border: activeTab === 'pending' ? 'none' : '1px solid #e2e8f0',
+            fontWeight: '700',
+            fontSize: '0.83rem',
+            cursor: 'pointer',
+            background: activeTab === 'pending' ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : '#fff',
+            color: activeTab === 'pending' ? 'white' : '#64748b',
+            boxShadow: activeTab === 'pending' ? '0 4px 12px rgba(14, 165, 233, 0.25)' : 'none',
+            transition: 'all 0.15s'
           }}
         >
-          Pending Requests
+          Pending Requests ({requests.length})
         </button>
         <button
           onClick={() => setActiveTab('history')}
           style={{
-            padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer',
-            background: activeTab === 'history' ? 'white' : 'transparent',
-            color: activeTab === 'history' ? '#0f172a' : '#64748b',
-            boxShadow: activeTab === 'history' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            padding: '8px 18px',
+            borderRadius: '9999px',
+            border: activeTab === 'history' ? 'none' : '1px solid #e2e8f0',
+            fontWeight: '700',
+            fontSize: '0.83rem',
+            cursor: 'pointer',
+            background: activeTab === 'history' ? 'linear-gradient(135deg,#0ea5e9,#6366f1)' : '#fff',
+            color: activeTab === 'history' ? 'white' : '#64748b',
+            boxShadow: activeTab === 'history' ? '0 4px 12px rgba(14, 165, 233, 0.25)' : 'none',
+            transition: 'all 0.15s'
           }}
         >
-          Rejected History
+          Rejected History ({logs.length})
         </button>
       </div>
 
       {activeTab === 'pending' && (
-        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div className="card" style={{ padding: '0', overflow: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading requests...</div>
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div className="spinner" style={{ width: '20px', height: '20px', border: '3px solid #f1f5f9', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span>Loading pending requests...</span>
+            </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div className="premium-table-container" style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
-                <tr>
-                  <th style={{ padding: '16px' }}>REQUEST TYPE</th>
-                  <th style={{ padding: '16px' }}>MEMBER DETAILS</th>
-                  <th style={{ padding: '16px' }}>AGENT</th>
-                  <th style={{ padding: '16px' }}>REQUESTED AT</th>
-                  <th style={{ padding: '16px' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.length === 0 ? (
+                <thead style={{ background: '#f8fafc' }}>
                   <tr>
-                    <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎉</div>
-                      No pending requests to review.
-                    </td>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REQUEST TYPE</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MEMBER DETAILS</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AGENT</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REQUESTED AT</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ACTIONS</th>
                   </tr>
-                ) : (
-                  currentRequests.map((req) => (
-                    <tr key={`${req.type}-${req.request_id}`} style={{ borderTop: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '16px' }}>
-                        {req.type === 'member' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1e40af', padding: '6px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '600' }}>
-                            <UserPlus size={14} /> New Member
-                          </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', padding: '6px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '600' }}>
-                            <ShieldAlert size={14} /> New Plan
-                          </span>
-                        )}
-                        {req.plan_name && <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px', fontWeight: '600' }}>Plan: {req.plan_name}</div>}
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontWeight: '600', color: '#0f172a' }}>{req.member_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Code: {req.member_code}</div>
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontWeight: '600', color: '#0ea5e9' }}>{req.agent_name || 'N/A'}</div>
-                      </td>
-                      <td style={{ padding: '16px', fontSize: '0.85rem', color: '#475569' }}>
-                        {new Date(req.created_at).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => setSelectedRequest(req)}
-                            title="View Profile Details"
-                            style={{ background: '#f1f5f9', color: '#475569', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
-                            <Eye size={14} /> View
-                          </button>
-                          <button onClick={() => handleApprove(req.request_id, req.type)} style={{ background: '#10b981', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
-                            <CheckCircle size={14} /> Approve
-                          </button>
-                          <button onClick={() => initiateReject(req.request_id, req.type)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '600' }}>
-                            <XCircle size={14} /> Reject
-                          </button>
-                        </div>
+                </thead>
+                <tbody>
+                  {requests.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🎉</div>
+                        <div style={{ fontWeight: '700', color: '#0f172a' }}>No pending requests to review.</div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    currentRequests.map((req) => (
+                      <tr key={`${req.type}-${req.request_id}`} style={{ borderTop: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px 16px' }}>
+                          {req.type === 'member' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e0f2fe', color: '#0284c7', padding: '4px 10px', borderRadius: '99px', fontSize: '0.73rem', fontWeight: '700' }}>
+                              <UserPlus size={13} /> New Member
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '99px', fontSize: '0.73rem', fontWeight: '700' }}>
+                              <ShieldAlert size={13} /> New Plan
+                            </span>
+                          )}
+                          {req.plan_name && <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '6px', fontWeight: '600' }}>Plan: {req.plan_name}</div>}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>{req.member_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>Code: {req.member_code}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: '700', color: '#0284c7', fontSize: '0.83rem' }}>{req.agent_name || 'N/A'}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: '#475569' }}>
+                          {new Date(req.created_at).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={() => setSelectedRequest(req)}
+                              title="View Profile Details"
+                              style={{ background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: '600' }}>
+                              <Eye size={14} /> View
+                            </button>
+                            <button onClick={() => handleApprove(req.request_id, req.type)} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: '700' }}>
+                              <CheckCircle size={14} /> Approve
+                            </button>
+                            <button onClick={() => initiateReject(req.request_id, req.type)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: '700' }}>
+                              <XCircle size={14} /> Reject
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
           {!loading && totalRequestPages > 1 && (
-            <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569' }}>Previous</button>
-              <span style={{ padding: '6px 12px', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalRequestPages}</span>
-              <button disabled={currentPage === totalRequestPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalRequestPages ? '#f1f5f9' : 'white', cursor: currentPage === totalRequestPages ? 'not-allowed' : 'pointer', color: '#475569' }}>Next</button>
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #f1f5f9' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f8fafc' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569', fontSize: '0.8rem', fontWeight: '600' }}>Previous</button>
+              <span style={{ padding: '6px 14px', fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalRequestPages}</span>
+              <button disabled={currentPage === totalRequestPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentPage === totalRequestPages ? '#f8fafc' : 'white', cursor: currentPage === totalRequestPages ? 'not-allowed' : 'pointer', color: '#475569', fontSize: '0.8rem', fontWeight: '600' }}>Next</button>
             </div>
           )}
         </div>
       )}
 
       {activeTab === 'history' && (
-        <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div className="card" style={{ padding: '0', overflow: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading history...</div>
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div className="spinner" style={{ width: '20px', height: '20px', border: '3px solid #f1f5f9', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span>Loading history...</span>
+            </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div className="premium-table-container" style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '950px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: '#f8fafc', color: '#475569', fontSize: '0.85rem' }}>
-                <tr>
-                  <th style={{ padding: '16px' }}>REQUEST TYPE</th>
-                  <th style={{ padding: '16px' }}>MEMBER NAME</th>
-                  <th style={{ padding: '16px' }}>AGENT</th>
-                  <th style={{ padding: '16px' }}>REJECTION REASON</th>
-                  <th style={{ padding: '16px' }}>REJECTED AT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.length === 0 ? (
+                <thead style={{ background: '#f8fafc' }}>
                   <tr>
-                    <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📋</div>
-                      No rejected history found.
-                    </td>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REQUEST TYPE</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MEMBER NAME</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AGENT</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REJECTION REASON</th>
+                    <th style={{ padding: '12px 16px', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>REJECTED AT</th>
                   </tr>
-                ) : (
-                  currentLogs.map((log) => (
-                    <tr key={log.id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '16px' }}>
-                        {log.type === 'member' ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1e40af', padding: '6px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '600' }}>
-                            <UserPlus size={14} /> New Member
-                          </span>
-                        ) : (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#92400e', padding: '6px 12px', borderRadius: '99px', fontSize: '0.75rem', fontWeight: '600' }}>
-                            <ShieldAlert size={14} /> New Plan
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontWeight: '600', color: '#0f172a' }}>{log.member_name}</div>
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ fontWeight: '600', color: '#0ea5e9' }}>{log.agent_name || 'Unknown'}</div>
-                      </td>
-                      <td style={{ padding: '16px' }}>
-                        <div style={{ color: '#991b1b', background: '#fee2e2', padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem' }}>
-                          {log.reason}
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px', fontSize: '0.85rem', color: '#475569' }}>
-                        {new Date(log.created_at).toLocaleString()}
+                </thead>
+                <tbody>
+                  {logs.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>📋</div>
+                        <div style={{ fontWeight: '700', color: '#0f172a' }}>No rejected history found.</div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    currentLogs.map((log) => (
+                      <tr key={log.id} style={{ borderTop: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px 16px' }}>
+                          {log.type === 'member' ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#e0f2fe', color: '#0284c7', padding: '4px 10px', borderRadius: '99px', fontSize: '0.73rem', fontWeight: '700' }}>
+                              <UserPlus size={13} /> New Member
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', color: '#b45309', padding: '4px 10px', borderRadius: '99px', fontSize: '0.73rem', fontWeight: '700' }}>
+                              <ShieldAlert size={13} /> New Plan
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>{log.member_name}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ fontWeight: '700', color: '#0284c7', fontSize: '0.83rem' }}>{log.agent_name || 'Unknown'}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ color: '#b91c1c', background: '#fee2e2', padding: '6px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '600', display: 'inline-block' }}>
+                            {log.reason}
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: '#475569' }}>
+                          {new Date(log.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
           {!loading && totalLogPages > 1 && (
-            <div style={{ padding: '16px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #e2e8f0' }}>
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f1f5f9' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569' }}>Previous</button>
-              <span style={{ padding: '6px 12px', fontSize: '0.9rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalLogPages}</span>
-              <button disabled={currentPage === totalLogPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: currentPage === totalLogPages ? '#f1f5f9' : 'white', cursor: currentPage === totalLogPages ? 'not-allowed' : 'pointer', color: '#475569' }}>Next</button>
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid #f1f5f9' }}>
+              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentPage === 1 ? '#f8fafc' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', color: '#475569', fontSize: '0.8rem', fontWeight: '600' }}>Previous</button>
+              <span style={{ padding: '6px 14px', fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>Page {currentPage} of {totalLogPages}</span>
+              <button disabled={currentPage === totalLogPages} onClick={() => setCurrentPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentPage === totalLogPages ? '#f8fafc' : 'white', cursor: currentPage === totalLogPages ? 'not-allowed' : 'pointer', color: '#475569', fontSize: '0.8rem', fontWeight: '600' }}>Next</button>
             </div>
           )}
         </div>
       )}
+
 
       {showRejectModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>

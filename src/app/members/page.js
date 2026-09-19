@@ -456,39 +456,68 @@ export default function MembersListPage() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
+      {/* Top Bar Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>Member Management</h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px' }}>{meta?.total || 0} members found</p>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>Member Management</h1>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '3px', margin: 0 }}>
+            {meta?.total || list.length || 0} registered members across all foundation plans
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
+            type="button"
             className="btn-secondary" 
             onClick={() => setShowGenerateModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#0ea5e9', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '10px 18px', borderRadius: '12px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer', transition: 'all 0.2s' }}
           >
-            <FileText size={16} /> Generate Certificate / Bond
+            <FileText size={18} />
+            <span>Generate Certificate / Bond</span>
+            {selectedIds.length > 0 && (
+              <span style={{ padding: '2px 8px', borderRadius: '9999px', background: '#0284c7', color: '#fff', fontSize: '0.75rem', fontWeight: '800' }}>
+                {selectedIds.length}
+              </span>
+            )}
           </button>
-          <button className="btn-primary" onClick={() => router.push('/members/form')}>
-            <Plus size={15} strokeWidth={2.5} /> Add Member
+          
+          <button 
+            type="button"
+            className="btn-primary" 
+            onClick={() => router.push('/members/form')}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', fontWeight: '700', fontSize: '0.88rem', boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)' }}
+          >
+            <Plus size={18} strokeWidth={2.5} />
+            <span>Add Member</span>
           </button>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '0', overflow: 'visible' }}>
-        {/* Filters and search panel */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <input 
-              type="text" 
-              value={searchInput}
-              onChange={handleSearchChange}
-              placeholder="Search by name, ID, mobile, aadhaar..."
-              style={{ padding: '7px 14px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.82rem', outline: 'none', width: '310px', fontFamily: 'inherit', background: '#f8fafc', color: '#0f172a' }}
-            />
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '4px', borderRadius: '12px', border: '1px solid #e8edf2' }}>
+      {/* Main Table & Filter Card */}
+      <div className="card" style={{ padding: '0', overflow: 'hidden', borderRadius: '18px', background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #e8edf2' }}>
+        
+        {/* Filter Controls Panel */}
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', borderBottom: '1px solid #f1f5f9', background: '#ffffff' }}>
+          
+          {/* Row 1: Search & Filter Tabs */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+            
+            {/* Search Bar */}
+            <div style={{ position: 'relative', flex: '1 1 320px', maxWidth: '420px' }}>
+              <input 
+                type="text" 
+                value={searchInput}
+                onChange={handleSearchChange}
+                placeholder="Search by member name, ID, mobile, aadhaar..."
+                className="premium-input"
+                style={{ width: '100%', paddingLeft: '16px', borderRadius: '12px', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Filter Tabs & Export */}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f8fafc', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 {[
                   { label: 'All', val: 'all' },
                   { label: 'Active', val: 'active' },
@@ -501,14 +530,15 @@ export default function MembersListPage() {
                     key={t.val}
                     onClick={() => { setMainFilter(t.val); setPage(1); }}
                     style={{
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
                       border: 'none',
-                      background: mainFilter === t.val ? '#6366f1' : 'transparent',
-                      color: mainFilter === t.val ? 'white' : '#64748b',
-                      cursor: 'pointer'
+                      background: mainFilter === t.val ? '#2563eb' : 'transparent',
+                      color: mainFilter === t.val ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {t.label}
@@ -518,41 +548,49 @@ export default function MembersListPage() {
 
               <button
                 onClick={handleExport}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 14px', borderRadius: '9px', border: '1.5px solid #e8edf2', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', background: '#fff', cursor: 'pointer' }}
+                className="btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '12px', fontSize: '0.82rem', fontWeight: '700', color: '#475569' }}
               >
-                <Download size={13} /> Export
+                <Download size={15} /> Export
               </button>
             </div>
+
           </div>
 
-          {/* Plan and Agent Dropdowns */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {/* Row 2: Secondary Dropdown Filters */}
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center', paddingTop: '4px' }}>
+            
+            {/* Plan Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Plan:</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#64748b' }}>Plan:</span>
               <select
                 value={selectedPlan}
                 onChange={handlePlanFilterChange}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+                className="premium-input"
+                style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '0.82rem', width: 'auto', minWidth: '150px' }}
               >
                 <option value="">All Plans</option>
                 {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
 
+            {/* Agent Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Agent:</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#64748b' }}>Agent:</span>
               <select
                 value={selectedAgent}
                 onChange={handleAgentFilterChange}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+                className="premium-input"
+                style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '0.82rem', width: 'auto', minWidth: '150px' }}
               >
                 <option value="">All Agents</option>
                 {agents.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
               </select>
             </div>
 
+            {/* Age Range Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Age Range:</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#64748b' }}>Age Range:</span>
               {ageRules.length > 0 ? (
                 <select
                   value={minAge !== '' && maxAge !== '' ? `${minAge}-${maxAge}` : ''}
@@ -568,7 +606,8 @@ export default function MembersListPage() {
                     }
                     setPage(1);
                   }}
-                  style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none' }}
+                  className="premium-input"
+                  style={{ padding: '6px 12px', borderRadius: '10px', fontSize: '0.82rem' }}
                 >
                   <option value="">Any Age</option>
                   {ageRules.map(rule => (
@@ -578,13 +617,14 @@ export default function MembersListPage() {
                   ))}
                 </select>
               ) : (
-                <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <input
                     type="number"
                     placeholder="Min"
                     value={minAge}
                     onChange={e => { setMinAge(e.target.value); setPage(1); }}
-                    style={{ width: '60px', padding: '6px 8px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', outline: 'none' }}
+                    className="premium-input"
+                    style={{ width: '65px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem' }}
                   />
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>to</span>
                   <input
@@ -592,227 +632,218 @@ export default function MembersListPage() {
                     placeholder="Max"
                     value={maxAge}
                     onChange={e => { setMaxAge(e.target.value); setPage(1); }}
-                    style={{ width: '60px', padding: '6px 8px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', outline: 'none' }}
+                    className="premium-input"
+                    style={{ width: '65px', padding: '6px 8px', borderRadius: '8px', fontSize: '0.82rem' }}
                   />
-                </>
+                </div>
               )}
             </div>
 
+            {/* Date Range Filter */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>Date Range:</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#64748b' }}>Date Range:</span>
               <input
                 type="date"
                 value={startDate}
                 onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+                className="premium-input"
+                style={{ padding: '6px 10px', borderRadius: '10px', fontSize: '0.82rem' }}
               />
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>to</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
+                className="premium-input"
+                style={{ padding: '6px 10px', borderRadius: '10px', fontSize: '0.82rem' }}
               />
             </div>
+
           </div>
+
         </div>
 
+        {/* Table Content */}
         {loading ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#0ea5e9', fontWeight: 'bold' }}>
-            <div className="spinner" style={{ width: '30px', height: '30px', border: '3px solid #f1f5f9', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 10px' }} />
-            <span>Loading members...</span>
+          <div style={{ padding: '60px', textAlign: 'center', color: '#2563eb' }}>
+            <div className="spinner" style={{ width: '36px', height: '36px', border: '3px solid #f1f5f9', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+            <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#64748b' }}>Loading member records...</span>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : error ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
-            <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>⚠️</div>
-            <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>{error}</div>
-            <button onClick={fetchMembers} className="btn-secondary" style={{ marginTop: '12px', fontSize: '0.75rem', padding: '6px 12px' }}>Try Again</button>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⚠️</div>
+            <div style={{ fontWeight: '700', fontSize: '0.92rem' }}>{error}</div>
+            <button onClick={fetchMembers} className="btn-secondary" style={{ marginTop: '14px', fontSize: '0.8rem', padding: '8px 16px', borderRadius: '10px' }}>Try Again</button>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="premium-table-container">
+            <table className="premium-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', width: '40px', borderBottom: '1px solid #f1f5f9' }}>
+                <tr>
+                  <th style={{ padding: '14px 16px', textAlign: 'center', width: '44px' }}>
                     <input 
                       type="checkbox" 
                       onChange={handleSelectAll}
                       checked={list.length > 0 && selectedIds.length === list.map(item => item.insurance_id).filter(Boolean).length}
-                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      style={{ cursor: 'pointer', width: '17px', height: '17px', accentColor: '#2563eb' }}
                     />
                   </th>
-                  {['MEMBER', 'MOBILE', 'INSURANCE PLAN', 'REGISTERED BY', 'INSURANCE', 'JOINING DATE', 'ACTIONS'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', borderBottom: '1px solid #f1f5f9' }}>{h}</th>
-                  ))}
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Member Details</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Mobile</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Insurance Plan</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Registered By</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Insurance Status</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Joining Date</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {list.length === 0 ? (
                   <tr>
                     <td colSpan={8} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
-                      <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>👥</div>
-                      <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#334155' }}>No Members Found</div>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>Try adjusting your search or filters.</div>
+                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>👥</div>
+                      <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#0f172a' }}>No Members Found</div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>Try clearing filters or changing your search term.</div>
                     </td>
                   </tr>
                 ) : (
                   list.map((item, idx) => {
-                  const memberId = item.member_id || item.id;
-                  const insuranceId = item.insurance_id;
-                  const name = getMemberName(item);
-                  const memberCode = item.member_code || memberId || '';
-                  const mobile = item.member_details?.mobile || item.phone || item.mobile || 'N/A';
-                  const gender = item.member_details?.gender || item.gender || 'N/A';
-                  const plan = getPlanName(item);
-                  const planType = getPlanType(item);
-                  const agent = getAgentName(item);
-                  let insStatusInfo = insuranceStatusStyle[item.insurance_status] || { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
-                  
-                  if (planType === 2 && (String(item.insurance_status) === '3' || String(item.insurance_status) === '2')) {
-                    insStatusInfo = { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
-                  }
-                  
-                  const marStatusInfo = planType === 2 
-                    ? (deathStatusStyle[item.death_status] || deathStatusStyle.default) 
-                    : (marriageStatusStyle[item.marriage_status] || marriageStatusStyle.default);
-                  
-                  const joiningDateRaw = item.insurance_joining_date || item.joining_date || item.created_at;
-                  const joiningDate = joiningDateRaw ? new Date(joiningDateRaw).toLocaleDateString() : 'N/A';
-                  
-                  const isSelected = selectedIds.includes(insuranceId);
-                  const profileUrl = getProfileImage(item);
+                    const memberId = item.member_id || item.id;
+                    const insuranceId = item.insurance_id;
+                    const name = getMemberName(item);
+                    const memberCode = item.member_code || memberId || '';
+                    const mobile = item.member_details?.mobile || item.phone || item.mobile || 'N/A';
+                    const plan = getPlanName(item);
+                    const planType = getPlanType(item);
+                    const agent = getAgentName(item);
+                    let insStatusInfo = insuranceStatusStyle[item.insurance_status] || { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
+                    
+                    if (planType === 2 && (String(item.insurance_status) === '3' || String(item.insurance_status) === '2')) {
+                      insStatusInfo = { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
+                    }
+                    
+                    const joiningDateRaw = item.insurance_joining_date || item.joining_date || item.created_at;
+                    const joiningDate = joiningDateRaw ? new Date(joiningDateRaw).toLocaleDateString('en-GB') : 'N/A';
+                    
+                    const isSelected = selectedIds.includes(insuranceId);
+                    const profileUrl = getProfileImage(item);
 
-                  return (
-                    <tr key={`${item.id || memberId}-${item.plan_id || idx}`} style={{ borderBottom: '1px solid #f8fafc', background: isSelected ? '#f0f9ff' : 'transparent' }}
-                      onMouseEnter={e => e.currentTarget.style.background = isSelected ? '#e0f2fe' : '#fafcff'}
-                      onMouseLeave={e => e.currentTarget.style.background = isSelected ? '#f0f9ff' : 'transparent'}
-                    >
-                      {/* Checkbox */}
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <input 
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={!insuranceId}
-                          onChange={() => handleSelectOne(insuranceId)}
-                          style={{ cursor: insuranceId ? 'pointer' : 'not-allowed', width: '16px', height: '16px' }}
-                        />
-                      </td>
+                    return (
+                      <tr key={`${item.id || memberId}-${item.plan_id || idx}`} style={{ background: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'transparent', transition: 'background 0.15s' }}>
+                        {/* Checkbox */}
+                        <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={!insuranceId}
+                            onChange={() => handleSelectOne(insuranceId)}
+                            style={{ cursor: insuranceId ? 'pointer' : 'not-allowed', width: '17px', height: '17px', accentColor: '#2563eb' }}
+                          />
+                        </td>
 
-                      {/* Profile & Name */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div 
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-                          onClick={() => router.push(`/members/${memberId}`)}
-                          title="View Profile"
-                        >
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#0ea5e9', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: '700', overflow: 'hidden', flexShrink: 0 }}>
-                            {profileUrl ? (
-                              <img src={profileUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              getInitials(item)
-                            )}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {name}
-                              {item.account_status === 2 && item.insurance_status !== 2 && insStatusInfo.label !== 'Deceased' && (
-                                <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem' }}>Suspended</span>
-                              )}
-                              {String(item.insurance_status) === '2' && insStatusInfo.label !== 'Deceased' && (
-                                <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem' }}>Rejected</span>
+                        {/* Profile & Name */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div 
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                            onClick={() => router.push(`/members/${memberId}`)}
+                            title="View Profile"
+                          >
+                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb 0%, #0284c7 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: '800', overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)' }}>
+                              {profileUrl ? (
+                                <img src={profileUrl} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                getInitials(item)
                               )}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>Code: {memberCode}</div>
+                            <div>
+                              <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {name}
+                                {item.account_status === 2 && item.insurance_status !== 2 && insStatusInfo.label !== 'Deceased' && (
+                                  <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Suspended</span>
+                                )}
+                                {String(item.insurance_status) === '2' && insStatusInfo.label !== 'Deceased' && (
+                                  <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Rejected</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontWeight: '600' }}>Code: <span style={{ color: '#0f172a' }}>{memberCode}</span></div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Mobile */}
-                      <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#334155' }}>{mobile}</td>
+                        {/* Mobile */}
+                        <td style={{ padding: '14px 16px', fontSize: '0.85rem', color: '#334155', fontWeight: '600' }}>{mobile}</td>
 
-                      {/* Removed Gender */}
+                        {/* Plan */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{ padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '700', background: '#f1f5f9', color: '#334155', display: 'inline-block' }}>
+                            {plan}
+                          </span>
+                        </td>
 
-                      {/* Plan */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: '600', background: '#f1f5f9', color: '#475569' }}>
-                          {plan}
-                        </span>
-                      </td>
+                        {/* Agent */}
+                        <td style={{ padding: '14px 16px', fontSize: '0.85rem', color: '#2563eb', fontWeight: '700' }}>{agent}</td>
 
-                      {/* Agent */}
-                      <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#0ea5e9', fontWeight: '600' }}>{agent}</td>
+                        {/* Insurance Status */}
+                        <td style={{ padding: '14px 16px' }}>
+                          <span className="status-badge" style={{ padding: '4px 12px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: '700', background: insStatusInfo.bg, color: insStatusInfo.color, display: 'inline-block' }}>
+                            {insStatusInfo.label}
+                          </span>
+                        </td>
 
-                      {/* Insurance Status */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ display: 'inline-block', textAlign: 'center', minWidth: '70px', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '700', background: insStatusInfo.bg, color: insStatusInfo.color }}>
-                          {insStatusInfo.label}
-                        </span>
-                      </td>
+                        {/* Joining Date */}
+                        <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{joiningDate}</td>
 
-                      {/* Removed Event Status */}
-
-                      {/* Joining Date */}
-                      <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>{joiningDate}</td>
-
-                      {/* Actions */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {/* Actions */}
+                        <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'flex-end' }}>
                             <button
-                              title="View Profile"
+                              title="View Member Profile"
                               onClick={() => router.push(`/members/${memberId}`)}
-                              style={{ color: '#0ea5e9', cursor: 'pointer', padding: '5px', borderRadius: '6px', border: 'none', background: 'none' }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#e0f2fe'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                              style={{ color: '#2563eb', cursor: 'pointer', padding: '6px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                              <Eye size={15} />
+                              <Eye size={16} />
                             </button>
                             {insuranceId && (
-                              <>
-                                <button
-                                  title="Generate Bond"
-                                  onClick={() => {
-                                    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
-                                    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
-                                    window.open(`${BASE_API_URL}/api/member/generate-membership-bond?id=${insuranceId}&apikey=${apikey}&token=${token}&admin=true&print=true`, '_blank');
-                                  }}
-                                  style={{ color: '#0284c7', cursor: 'pointer', padding: '5px', borderRadius: '6px', border: 'none', background: 'none' }}
-                                  onMouseEnter={e => e.currentTarget.style.background = '#e0f2fe'}
-                                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                >
-                                  <FileText size={15} />
-                                </button>
-                              </>
+                              <button
+                                title="Generate Membership Bond"
+                                onClick={() => {
+                                  const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+                                  const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+                                  window.open(`${BASE_API_URL}/api/member/generate-membership-bond?id=${insuranceId}&apikey=${apikey}&token=${token}&admin=true&print=true`, '_blank');
+                                }}
+                                style={{ color: '#0284c7', cursor: 'pointer', padding: '6px', borderRadius: '8px', border: '1px solid #bae6fd', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <FileText size={16} />
+                              </button>
                             )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         )}
 
-
-
         {/* Pagination Controls */}
         {meta && meta.total > 0 && (
-          <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '500' }}>
-                Showing <span style={{ fontWeight: '700', color: '#0f172a' }}>{meta.skip + 1}</span> to{' '}
-                <span style={{ fontWeight: '700', color: '#0f172a' }}>{Math.min(meta.skip + meta.limit, meta.total)}</span> of{' '}
-                <span style={{ fontWeight: '700', color: '#0f172a' }}>{meta.total}</span> members
+          <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '12px', background: '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '500' }}>
+                Showing <span style={{ fontWeight: '800', color: '#0f172a' }}>{meta.skip + 1}</span> to{' '}
+                <span style={{ fontWeight: '800', color: '#0f172a' }}>{Math.min(meta.skip + meta.limit, meta.total)}</span> of{' '}
+                <span style={{ fontWeight: '800', color: '#0f172a' }}>{meta.total}</span> members
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Show:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>Rows per page:</span>
                 <select 
                   value={limit} 
                   onChange={(e) => { setLimit(e.target.value === 'All' ? 'All' : Number(e.target.value)); setPage(1); }} 
                   className="premium-input" 
-                  style={{ padding: '4px 8px', fontSize: '0.78rem', height: 'auto', minHeight: 'unset' }}
+                  style={{ padding: '4px 10px', fontSize: '0.82rem', borderRadius: '8px' }}
                 >
                   {[10, 25, 50, 100, 200, 500, 'All'].map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
@@ -825,36 +856,32 @@ export default function MembersListPage() {
               <button
                 disabled={!meta.hasPrev}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="btn-secondary"
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: '600',
-                  border: '1px solid #e8edf2',
-                  background: meta.hasPrev ? '#fff' : '#f8fafc',
-                  color: meta.hasPrev ? '#475569' : '#94a3b8',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  opacity: meta.hasPrev ? 1 : 0.5,
                   cursor: meta.hasPrev ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.15s',
                 }}
               >
                 Previous
               </button>
-              <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: '700', minWidth: '40px', textAlign: 'center' }}>
-                {page}
+              <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: '800', padding: '0 8px' }}>
+                Page {page}
               </span>
               <button
                 disabled={!meta.hasNext}
                 onClick={() => setPage(p => p + 1)}
+                className="btn-secondary"
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: '6px',
-                  fontSize: '0.78rem',
-                  fontWeight: '600',
-                  border: '1px solid #e8edf2',
-                  background: meta.hasNext ? '#fff' : '#f8fafc',
-                  color: meta.hasNext ? '#475569' : '#94a3b8',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  opacity: meta.hasNext ? 1 : 0.5,
                   cursor: meta.hasNext ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.15s',
                 }}
               >
                 Next
@@ -864,28 +891,25 @@ export default function MembersListPage() {
         )}
       </div>
 
+      {/* Delete Confirmation Modal */}
       {deleteId && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setDeleteId(null)} />
-          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '380px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ fontSize: '2.2rem', textAlign: 'center', marginBottom: '10px' }}>⚠️</div>
-            <div style={{ fontWeight: '800', fontSize: '1.1rem', color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>Delete Member</div>
-            <div style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '22px', lineHeight: '1.4' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setDeleteId(null)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '10px' }}>⚠️</div>
+            <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a', textAlign: 'center', marginBottom: '8px' }}>Delete Member Account</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '22px', lineHeight: '1.5' }}>
               <p style={{ marginBottom: '8px', textAlign: 'center' }}>Are you sure you want to delete this member?</p>
               <p style={{ fontWeight: '700', color: '#334155', marginBottom: '6px' }}>This action will:</p>
-              <ul style={{ listStyleType: 'disc', paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <li>Soft delete member</li>
-                <li>Disable login access</li>
-                <li>Preserve insurance history</li>
-                <li>Preserve payment records</li>
+              <ul style={{ listStyleType: 'disc', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Soft delete member profile</li>
+                <li>Disable active portal access</li>
+                <li>Preserve insurance history & receipts</li>
               </ul>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setDeleteId(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.82rem' }}>Cancel</button>
-              <button onClick={handleDeleteConfirm} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', background: '#ef4444', color: 'white', boxShadow: 'none', border: 'none', fontSize: '0.82rem' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
-                onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
-              >Delete Member</button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setDeleteId(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>Cancel</button>
+              <button onClick={handleDeleteConfirm} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px', background: '#ef4444', color: 'white', boxShadow: 'none', border: 'none', fontSize: '0.85rem', fontWeight: '700' }}>Delete Member</button>
             </div>
           </div>
         </div>
@@ -893,78 +917,78 @@ export default function MembersListPage() {
 
       {/* Generate Certificate / Bond Modal */}
       {showGenerateModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }} onClick={() => setShowGenerateModal(false)} />
-          <div style={{ position: 'relative', background: 'white', borderRadius: '16px', padding: '28px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowGenerateModal(false)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FileText size={22} />
               </div>
               <div>
-                <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a' }}>Generate Certificate / Bond</div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Select document type and members</div>
+                <div style={{ fontWeight: '800', fontSize: '1.2rem', color: '#0f172a', margin: 0 }}>Generate Bond / Certificate</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Select document format for selected members</div>
               </div>
             </div>
 
             {/* Document Type Option */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '8px' }}>
-                1. Select Document Type:
+              <label style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '8px' }}>
+                1. Select Document Format:
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div 
                   onClick={() => setDocType('bond')}
                   style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    border: docType === 'bond' ? '2px solid #0ea5e9' : '1.5px solid #e2e8f0',
-                    background: docType === 'bond' ? '#f0f9ff' : '#f8fafc',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: docType === 'bond' ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
+                    background: docType === 'bond' ? 'rgba(37, 99, 235, 0.05)' : '#f8fafc',
                     cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.15s'
                   }}
                 >
-                  <div style={{ fontWeight: '700', fontSize: '0.9rem', color: docType === 'bond' ? '#0284c7' : '#334155' }}>📄 Membership Bond</div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Full Bond Agreement</div>
+                  <div style={{ fontWeight: '800', fontSize: '0.92rem', color: docType === 'bond' ? '#2563eb' : '#334155' }}>📄 Membership Bond</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>Full Legal Bond Paper</div>
                 </div>
 
                 <div 
                   onClick={() => setDocType('certificate')}
                   style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    border: docType === 'certificate' ? '2px solid #0ea5e9' : '1.5px solid #e2e8f0',
-                    background: docType === 'certificate' ? '#f0f9ff' : '#f8fafc',
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: docType === 'certificate' ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
+                    background: docType === 'certificate' ? 'rgba(37, 99, 235, 0.05)' : '#f8fafc',
                     cursor: 'pointer',
                     textAlign: 'center',
                     transition: 'all 0.15s'
                   }}
                 >
-                  <div style={{ fontWeight: '700', fontSize: '0.9rem', color: docType === 'certificate' ? '#0284c7' : '#334155' }}>📜 Certificate</div>
-                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>Membership Certificate</div>
+                  <div style={{ fontWeight: '800', fontSize: '0.92rem', color: docType === 'certificate' ? '#2563eb' : '#334155' }}>📜 Certificate</div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '3px' }}>Official Certificate</div>
                 </div>
               </div>
             </div>
 
-            {/* Selection info */}
-            <div style={{ marginBottom: '22px', padding: '12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                2. Selected Members: <span style={{ color: '#0ea5e9', fontWeight: '800' }}>{selectedIds.length}</span> member(s)
+            {/* Selection Info */}
+            <div style={{ marginBottom: '22px', padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+                2. Selected Target: <span style={{ color: '#2563eb', fontWeight: '800' }}>{selectedIds.length}</span> member(s)
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: '1.4' }}>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: '1.4' }}>
                 {selectedIds.length === 0 ? (
-                  <span style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ No members selected. Please tick checkboxes from the member list table.</span>
+                  <span style={{ color: '#ef4444', fontWeight: '700' }}>⚠️ No members selected. Tick checkboxes in the table to select.</span>
                 ) : (
-                  `Generate and print ${docType === 'bond' ? 'Membership Bond' : 'Certificate'} for all ${selectedIds.length} selected member(s) at once.`
+                  `Batch generate and print ${docType === 'bond' ? 'Membership Bonds' : 'Certificates'} for all ${selectedIds.length} selected member(s).`
                 )}
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button 
                 onClick={() => setShowGenerateModal(false)} 
                 className="btn-secondary" 
-                style={{ flex: 1, padding: '10px', borderRadius: '10px', fontSize: '0.82rem' }}
+                style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}
               >
                 Cancel
               </button>
@@ -975,12 +999,13 @@ export default function MembersListPage() {
                 style={{ 
                   flex: 1, 
                   padding: '10px', 
-                  borderRadius: '10px', 
-                  background: selectedIds.length === 0 ? '#cbd5e1' : '#0ea5e9', 
+                  borderRadius: '12px', 
+                  background: selectedIds.length === 0 ? '#cbd5e1' : '#2563eb', 
                   color: 'white', 
                   boxShadow: 'none', 
                   border: 'none', 
-                  fontSize: '0.82rem',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
                   cursor: selectedIds.length === 0 ? 'not-allowed' : 'pointer'
                 }}
               >

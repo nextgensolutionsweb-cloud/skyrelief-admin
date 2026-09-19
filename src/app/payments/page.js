@@ -238,15 +238,15 @@ export default function PaymentCampaignsListPage() {
   }));
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+    <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>Payment Dashboard</h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px' }}>Monitor collections and manage campaigns</p>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em', margin: 0 }}>Payment Campaigns & Dashboard</h1>
+          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px', margin: 0 }}>Monitor collections, track agent performance, and manage payment campaigns</p>
         </div>
-        <button className="btn-primary" onClick={() => router.push('/payments/create')}>
-          <Plus size={15} strokeWidth={2.5} /> Create Campaign
+        <button className="btn-primary" onClick={() => router.push('/payments/create')} style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <Plus size={16} strokeWidth={2.5} /> Create Campaign
         </button>
       </div>
 
@@ -257,61 +257,101 @@ export default function PaymentCampaignsListPage() {
         </div>
       ) : dash ? (
         <>
-          {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          {/* Summary KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
             
-            <div className="premium-card" style={{ padding: '20px', background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Campaigns</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a', marginTop: '8px' }}>{dash.total_campaigns}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Campaigns</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  📊
+                </div>
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#0f172a' }}>{dash.total_campaigns}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px', borderLeft: '4px solid #f59e0b' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Active Campaigns</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b45309', marginTop: '8px' }}>{dash.active_campaigns}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Campaigns</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  ⏳
+                </div>
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#b45309' }}>{dash.active_campaigns}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px', borderLeft: '4px solid #3b82f6' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Completed Campaigns</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1d4ed8', marginTop: '8px' }}>{dash.completed_campaigns}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Completed</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  ✅
+                </div>
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#1d4ed8' }}>{dash.completed_campaigns}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase' }}>Total Collectable Amount</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#15803d', marginTop: '8px' }}>{formatCurrency(dash.total_collectable_amount)}</div>
+            <div className="card" style={{ padding: '20px', background: '#f0fdf4', borderRadius: '14px', border: '1px solid #bbf7d0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Collectable</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  💰
+                </div>
+              </div>
+              <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#15803d' }}>{formatCurrency(dash.total_collectable_amount)}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Paid Amount</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#16a34a', marginTop: '8px' }}>{formatCurrency(dash.total_paid_amount)}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Paid Amount</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  💵
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#16a34a' }}>{formatCurrency(dash.total_paid_amount)}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Pending Amount</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ea580c', marginTop: '8px' }}>{formatCurrency(dash.total_pending_amount)}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Amount</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ffedd5', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  ⏳
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ea580c' }}>{formatCurrency(dash.total_pending_amount)}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Paid Members</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#16a34a', marginTop: '8px' }}>{dash.total_paid_count}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Paid Members</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  👥
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#16a34a' }}>{dash.total_paid_count}</div>
             </div>
 
-            <div className="premium-card" style={{ padding: '20px' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Total Pending Members</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ea580c', marginTop: '8px' }}>{dash.total_pending_count}</div>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Members</span>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f1f5f9', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700' }}>
+                  🕒
+                </div>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#ea580c' }}>{dash.total_pending_count}</div>
             </div>
             
           </div>
 
           {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             
             {/* Overview Pie Chart */}
-            <div className="premium-card" style={{ padding: '20px', minHeight: '300px' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '20px' }}>Collection Overview</h3>
-              <div style={{ width: '100%', height: 240 }}>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', margin: 0 }}>Collection Overview</h3>
+              <div style={{ width: '100%', height: 230, marginTop: '12px' }}>
                 <ResponsiveContainer>
                   <PieChart>
-                    <Pie data={overviewData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                    <Pie data={overviewData} cx="50%" cy="50%" innerRadius={55} outerRadius={78} paddingAngle={4} dataKey="value">
                       {overviewData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
                     </Pie>
                     <RechartsTooltip formatter={(val) => formatCurrency(val)} />
@@ -322,32 +362,32 @@ export default function PaymentCampaignsListPage() {
             </div>
 
             {/* Plan Wise Bar Chart */}
-            <div className="premium-card" style={{ padding: '20px', minHeight: '300px' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '20px' }}>Plan Wise Collection</h3>
-              <div style={{ width: '100%', height: 240 }}>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', margin: 0 }}>Plan Wise Collection</h3>
+              <div style={{ width: '100%', height: 230, marginTop: '12px' }}>
                 <ResponsiveContainer>
                   <BarChart data={planWiseData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                     <YAxis tickFormatter={(val) => `₹${val/1000}k`} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                     <RechartsTooltip formatter={(val) => formatCurrency(val)} cursor={{ fill: '#f8fafc' }} />
-                    <Bar dataKey="Collected" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
+                    <Bar dataKey="Collected" fill="#0284c7" radius={[6, 6, 0, 0]} barSize={28} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Campaign Wise Bar Chart */}
-            <div className="premium-card" style={{ padding: '20px', minHeight: '300px' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '20px' }}>Recent Campaign Targets</h3>
-              <div style={{ width: '100%', height: 240 }}>
+            <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', margin: 0 }}>Recent Campaign Targets</h3>
+              <div style={{ width: '100%', height: 230, marginTop: '12px' }}>
                 <ResponsiveContainer>
                   <BarChart data={campaignWiseData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                     <YAxis tickFormatter={(val) => `₹${val/1000}k`} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
                     <RechartsTooltip formatter={(val) => formatCurrency(val)} cursor={{ fill: '#f8fafc' }} />
-                    <Bar dataKey="Collectable" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={30} />
+                    <Bar dataKey="Collectable" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={28} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -356,6 +396,7 @@ export default function PaymentCampaignsListPage() {
           </div>
         </>
       ) : null}
+
 
       {/* AGENT COLLECTION PERFORMANCE SECTION */}
       <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', letterSpacing: '-0.02em', marginTop: '16px' }}>Agent Collection Performance</h2>
@@ -385,7 +426,7 @@ export default function PaymentCampaignsListPage() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: '0', overflow: 'visible', marginBottom: '32px' }}>
+          <div className="card" style={{ padding: '0', overflow: 'hidden', marginBottom: '32px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
             <div style={{ padding: '16px 20px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
               <div style={{ position: 'relative', width: '260px' }}>
                 <Search size={14} style={{ position: 'absolute', left: '12px', top: '10px', color: '#94a3b8' }} />
@@ -410,7 +451,7 @@ export default function PaymentCampaignsListPage() {
               </div>
             </div>
             
-            <div style={{ overflowX: 'auto' }}>
+            <div className="premium-table-container" style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
@@ -451,7 +492,7 @@ export default function PaymentCampaignsListPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <button
                           onClick={() => fetchAgentDetails(a.agent_id)}
-                          style={{ color: '#0ea5e9', cursor: 'pointer', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e0f2fe', background: '#f0f9ff', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          style={{ color: '#0ea5e9', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e0f2fe', background: '#f0f9ff', fontSize: '0.75rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                           <Eye size={14} /> View
                         </button>
@@ -470,7 +511,8 @@ export default function PaymentCampaignsListPage() {
 
       {/* CAMPAIGNS LIST SECTION */}
       <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', letterSpacing: '-0.02em' }}>Campaign List</h2>
-      <div className="card" style={{ padding: '0', overflow: 'visible', marginBottom: '24px' }}>
+      <div className="card" style={{ padding: '0', overflow: 'hidden', marginBottom: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+
         {/* Filters Panel */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>

@@ -1,8 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
-import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download, Users, Shield, ShieldCheck, CheckCircle2, User, Heart, Sparkles } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -44,6 +43,15 @@ const calculateExactAge = (dobString) => {
   return parts.length > 0 ? parts.join(', ') : '0 days';
 };
 
+const formatAadhaar = (aadhaar) => {
+  if (!aadhaar) return '—';
+  const cleaned = String(aadhaar).replace(/\D/g, '');
+  if (cleaned.length === 12) {
+    return cleaned.match(/.{1,4}/g).join(' ');
+  }
+  return aadhaar;
+};
+
 export default function AgentDetailsPage({ params: paramsPromise }) {
   const router = useRouter();
   const params = use(paramsPromise);
@@ -51,6 +59,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
 
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
 
   // Zoom lightbox state
   const [zoomImage, setZoomImage] = useState(null);
@@ -688,206 +697,508 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const matchedColor = avatarColors[Math.abs(fullName.charCodeAt(0) || 0) % avatarColors.length];
 
   return (
-    <div>
-      {/* Back Button */}
-      <button 
-        onClick={() => router.back()} 
-        className="btn-secondary"
-        style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px' }}
-      >
-        <ArrowLeft size={16} strokeWidth={2.5} /> 
-        <span>Back to Agent List</span>
-      </button>
+    <div style={{ maxWidth: '1380px', margin: '0 auto', paddingBottom: '48px' }}>
+      {/* Top Bar: Back Button + Breadcrumbs */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+        <button 
+          onClick={() => router.back()} 
+          className="btn-secondary"
+          style={{ padding: '7px 16px', borderRadius: '9999px', fontSize: '0.82rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '7px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+        >
+          <ArrowLeft size={16} strokeWidth={2.5} /> 
+          <span>Back to Agents Directory</span>
+        </button>
 
-      {/* Header Profile Box */}
-      <div className="premium-card" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '48px', background: 'var(--primary-gradient)' }}></div>
-
-        <div style={{ position: 'relative', zIndex: 1, marginTop: '20px' }}>
-          {profilePhotoUrl ? (
-            <img 
-              src={profilePhotoUrl} 
-              alt={fullName}
-              onClick={() => setZoomImage(profilePhotoUrl)}
-              style={{ 
-                width: '72px', height: '72px', 
-                borderRadius: '50%', 
-                border: '3px solid white',
-                boxShadow: 'var(--shadow-md)',
-                objectFit: 'cover',
-                cursor: 'zoom-in'
-              }}
-            />
-          ) : (
-            <div style={{ 
-              width: '72px', height: '72px', 
-              borderRadius: '50%', 
-              background: matchedColor, color: 'white', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.4rem', fontWeight: '800', border: '3px solid white',
-              boxShadow: 'var(--shadow-md)'
-            }}>
-              {initials}
-            </div>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600' }}>Directory</span>
+          <span style={{ color: '#cbd5e1' }}>/</span>
+          <span style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: '700' }}>{fullName}</span>
+          <span className={`status-badge ${statusClass}`} style={{ fontSize: '0.72rem', padding: '3px 10px', borderRadius: '9999px', fontWeight: '750', marginLeft: '6px' }}>
+            ● {displayStatus} Agent
+          </span>
         </div>
+      </div>
 
-        <div style={{ flex: 1, position: 'relative', zIndex: 1, marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: '800', color: 'var(--text-dark)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{fullName}</h1>
-              <span className={`status-badge ${statusClass}`} style={{ fontSize: '0.65rem' }}>
-                ● {displayStatus} Agent
-              </span>
+      {/* Main Unified Executive Hero Card */}
+      <div className="premium-card" style={{ 
+        position: 'relative',
+        padding: '28px 32px 24px 32px', 
+        marginBottom: '24px', 
+        borderRadius: '20px', 
+        border: '1px solid #e2e8f0', 
+        background: '#ffffff',
+        boxShadow: '0 4px 25px -4px rgba(15, 23, 42, 0.06)',
+        overflow: 'hidden'
+      }}>
+        {/* Top Accent Gradient Bar */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '4px',
+          background: 'linear-gradient(90deg, #0284c7 0%, #3b82f6 50%, #6366f1 100%)'
+        }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+          {/* Left: Avatar + Identity Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '22px', flexWrap: 'wrap' }}>
+            {/* Avatar Container with 100% Reliable Fallback & Initials Underlay */}
+            <div style={{ 
+              position: 'relative', 
+              flexShrink: 0, 
+              width: '88px', 
+              height: '88px',
+              borderRadius: '22px',
+              background: 'linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2rem',
+              fontWeight: '850',
+              letterSpacing: '0.02em',
+              border: '3px solid #ffffff',
+              boxShadow: '0 8px 24px -4px rgba(2, 132, 199, 0.35)',
+              overflow: 'hidden',
+              userSelect: 'none'
+            }}>
+              <span>{initials}</span>
+
+              {profilePhotoUrl && !imgError && (
+                <img 
+                  src={profilePhotoUrl} 
+                  alt=""
+                  onError={() => setImgError(true)}
+                  onClick={() => { setZoomImage(profilePhotoUrl); setZoomTitle('Profile Photo'); }}
+                  style={{ 
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'cover',
+                    cursor: 'zoom-in'
+                  }}
+                />
+              )}
+
+              <span style={{ 
+                position: 'absolute', 
+                bottom: '2px', 
+                right: '2px', 
+                width: '18px', 
+                height: '18px', 
+                borderRadius: '50%', 
+                background: agent.status === 1 ? '#10b981' : '#f59e0b', 
+                border: '2.5px solid #ffffff', 
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                zIndex: 2
+              }} title={`Status: ${displayStatus}`} />
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: '600', display: 'flex', gap: '16px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CreditCard size={14} /> Code: {agent.agent_code || 'Pending'}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Registered: {agent.created_at ? agent.created_at.split('T')[0] : 'N/A'}</span>
-            </p>
+
+            {/* Name, Code, and Details */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '1.65rem', fontWeight: '850', color: '#0f172a', margin: 0, letterSpacing: '-0.025em', lineHeight: 1.2 }}>
+                  {fullName}
+                </h1>
+                
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '5px', 
+                  fontSize: '0.74rem', 
+                  padding: '4px 11px', 
+                  borderRadius: '9999px', 
+                  fontWeight: '750',
+                  background: agent.status === 1 ? '#ecfdf5' : '#fffbeb',
+                  color: agent.status === 1 ? '#047857' : '#b45309',
+                  border: agent.status === 1 ? '1px solid #a7f3d0' : '1px solid #fde68a'
+                }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: agent.status === 1 ? '#10b981' : '#f59e0b' }} />
+                  {displayStatus} Agent
+                </span>
+
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '5px', 
+                  fontSize: '0.74rem', 
+                  color: '#0284c7', 
+                  background: '#e0f2fe', 
+                  border: '1px solid #bae6fd',
+                  padding: '4px 11px', 
+                  borderRadius: '9999px', 
+                  fontWeight: '750' 
+                }}>
+                  <ShieldCheck size={14} strokeWidth={2.4} /> Official Agent
+                </span>
+              </div>
+
+              {/* Info Badges Strip */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                <div 
+                  onClick={() => {
+                    navigator.clipboard.writeText(agent.agent_code || '');
+                    showToast('Agent code copied!', 'success');
+                  }}
+                  style={{ 
+                    display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                    background: '#f8fafc', padding: '5px 12px', borderRadius: '8px', 
+                    border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569', 
+                    fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s ease'
+                  }}
+                  title="Click to copy agent code"
+                >
+                  <CreditCard size={13} color="#0284c7" />
+                  <span>Code: <strong style={{ color: '#0f172a', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{agent.agent_code || 'Pending'}</strong></span>
+                  <Copy size={11} style={{ opacity: 0.5, marginLeft: '2px' }} />
+                </div>
+
+                {agent.phone && (
+                  <a 
+                    href={`tel:${agent.phone}`}
+                    style={{ 
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                      background: '#f0fdf4', padding: '5px 12px', borderRadius: '8px', 
+                      border: '1px solid #bbf7d0', fontSize: '0.78rem', color: '#15803d', 
+                      fontWeight: '750', textDecoration: 'none' 
+                    }}
+                  >
+                    <Phone size={12} color="#16a34a" />
+                    <span>{agent.phone}</span>
+                  </a>
+                )}
+
+                {agent.email && (
+                  <a 
+                    href={`mailto:${agent.email}`}
+                    style={{ 
+                      display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                      background: '#f8fafc', padding: '5px 12px', borderRadius: '8px', 
+                      border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569', 
+                      fontWeight: '600', textDecoration: 'none' 
+                    }}
+                  >
+                    <Mail size={12} color="#0284c7" />
+                    <span>{agent.email}</span>
+                  </a>
+                )}
+
+                {agent.created_at && (
+                  <div style={{ 
+                    display: 'inline-flex', alignItems: 'center', gap: '6px', 
+                    background: '#f8fafc', padding: '5px 12px', borderRadius: '8px', 
+                    border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#64748b', 
+                    fontWeight: '600' 
+                  }}>
+                    <Calendar size={12} color="#64748b" />
+                    <span>Registered: <strong style={{ color: '#334155' }}>{agent.created_at.split('T')[0]}</strong></span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {/* Action Button */}
-          <div>
-            <button className="btn-primary" onClick={() => router.push(`/agents/form?id=${agentId}`)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+
+          {/* Right: Action Buttons Group */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button 
+              className="btn-primary" 
+              onClick={() => router.push(`/agents/form?id=${agentId}`)} 
+              style={{ 
+                padding: '9px 18px', 
+                fontSize: '0.82rem', 
+                fontWeight: '750', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '7px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.28)'
+              }}
+            >
               <Edit size={14} /> <span>Edit Agent Details</span>
             </button>
+
+            <button 
+              className="btn-secondary" 
+              onClick={() => {
+                setActiveSection('Wallet');
+                setTimeout(() => {
+                  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }, 100);
+              }} 
+              style={{ 
+                padding: '9px 15px', 
+                fontSize: '0.82rem', 
+                fontWeight: '700', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '7px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1'
+              }}
+            >
+              <CreditCard size={14} color="#0284c7" /> <span>View Wallet</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Quick KPI Strip at Bottom of Hero Card */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '14px', 
+          marginTop: '24px', 
+          paddingTop: '20px', 
+          borderTop: '1px solid #f1f5f9' 
+        }}>
+          <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Users size={18} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Assigned Members</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', display: 'block', marginTop: '2px' }}>
+                {counts.all || 0} Members
+              </span>
+            </div>
+          </div>
+
+          <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckCircle2 size={18} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Joining Fee Comm.</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#15803d', display: 'block', marginTop: '2px' }}>
+                {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '0%'}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ background: '#eff6ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Shield size={18} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '0.68rem', color: '#1e40af', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Installment Comm.</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1d4ed8', display: 'block', marginTop: '2px' }}>
+                {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '0%'}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ background: '#faf5ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f3e8ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <User size={18} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '0.68rem', color: '#6b21a8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Demographics</span>
+              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#6d28d9', display: 'block', marginTop: '2px' }}>
+                {agent.gender || '—'} • {calculateExactAge(agent.dob) || (agent.age ? `${agent.age} Yrs` : '—')}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Grid */}
-      <div className="grid-r-split-2-1" style={{ alignItems: 'start' }}>
+      <div className="grid-responsive-2col" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: '24px', alignItems: 'start' }}>
         
         {/* Left Column - Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
           
           {/* Card 1: Basic & Personal Information */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-              <Info size={16} color="var(--primary)" />
-              <span>Personal Details</span>
-            </h2>
-            
-            <div className="grid-r-2" style={{ gap: '12px', fontSize: '0.8rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Agent Code:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.agent_code || 'Pending'}</span>
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User size={18} />
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>First Name:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.first_name || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Middle Name:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.middle_name || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Last Name:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.last_name || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Gender:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.gender || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Date of Birth:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.dob ? agent.dob.split('T')[0] : '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Age:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{calculateExactAge(agent.dob) || agent.age || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Occupation:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.occupation || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Phone:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}><Phone size={11} style={{ display: 'inline', marginRight: '4px' }} />{agent.phone || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Alternate Mobile:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.alt_mobile || agent.alternate_mobile || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Email Address:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}><Mail size={11} style={{ display: 'inline', marginRight: '4px' }} />{agent.email || '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Joining Fee Comm.:</span>
-                <span style={{ color: 'var(--primary)', fontWeight: '800', marginLeft: '6px' }}>{agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '—'}</span>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Installment Comm.:</span>
-                <span style={{ color: 'var(--primary)', fontWeight: '800', marginLeft: '6px' }}>{agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '—'}</span>
-              </div>
-              <div style={{ gridColumn: 'span 2' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Administrative Notes:</span>
-                <p style={{ color: 'var(--text-dark)', fontWeight: '600', marginTop: '4px', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>{agent.notes || 'No administrative notes recorded.'}</p>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Personal Details</h2>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Agent personal identity and operational commission rates</span>
               </div>
             </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '14px' }}>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>First Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.first_name || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Middle Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.middle_name || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Name</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.last_name || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Gender</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.gender || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Date of Birth</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.dob ? agent.dob.split('T')[0] : '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Calculated Age</span>
+                <span style={{ color: '#0284c7', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>
+                  {calculateExactAge(agent.dob) || (agent.age ? `${agent.age} Yrs` : '—')}
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Primary Phone</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <Phone size={13} color="#0284c7" />
+                  {agent.phone || '—'}
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Alternate Mobile</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <Phone size={13} color="#64748b" />
+                  {agent.alt_mobile || agent.alternate_mobile || '—'}
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email Address</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                  <Mail size={13} color="#0284c7" />
+                  {agent.email || '—'}
+                </span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Occupation</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.occupation || '—'}</span>
+              </div>
+              <div style={{ background: '#f0fdf4', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dcfce7' }}>
+                <span style={{ color: '#166534', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Joining Fee Comm.</span>
+                <span style={{ color: '#15803d', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
+                  {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '—'}
+                </span>
+              </div>
+              <div style={{ background: '#eff6ff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dbeafe' }}>
+                <span style={{ color: '#1e40af', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Installment Comm.</span>
+                <span style={{ color: '#1d4ed8', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
+                  {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '—'}
+                </span>
+              </div>
+            </div>
+
+            {/* Government Aadhaar Highlight Box */}
+            <div style={{ marginTop: '14px', background: '#eff6ff', padding: '14px 18px', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span style={{ color: '#1e40af', fontWeight: '700', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <ShieldCheck size={14} color="#2563eb" /> Government Aadhaar Number
+                </span>
+                <span style={{ color: '#0f172a', fontWeight: '800', fontSize: '1.15rem', letterSpacing: '0.12em', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>
+                  {formatAadhaar(agent.aadhaar)}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', fontWeight: '700', padding: '4px 10px', borderRadius: '20px' }}>
+                Official Identity Verified
+              </span>
+            </div>
+
+            {/* Notes Section */}
+            {agent.notes && (
+              <div style={{ marginTop: '14px', background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#64748b', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Administrative Notes</span>
+                <p style={{ color: '#334155', fontWeight: '600', fontSize: '0.85rem', margin: '4px 0 0 0', lineHeight: 1.4 }}>{agent.notes}</p>
+              </div>
+            )}
           </div>
 
           {/* Card 2: Address Details */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-              <MapPin size={16} color="var(--primary)" />
-              <span>Address Details</span>
-            </h2>
-            <div className="grid-r-2" style={{ gap: '12px', fontSize: '0.8rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Street Address:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.address || '—'}</span>
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MapPin size={18} />
               </div>
               <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Village / Landmark:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.village || '—'}</span>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Address Details</h2>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Agent operational area and registered headquarters</span>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>City:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.city || '—'}</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '10px', border: '1px solid #f1f5f9', gridColumn: 'span 2' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Street / Operational Address</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.95rem', marginTop: '4px', display: 'block', lineHeight: 1.4 }}>
+                  {agent.address || '—'}
+                </span>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>State:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.state || '—'}</span>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Village / Landmark</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.9rem', marginTop: '2px', display: 'block' }}>{agent.village || '—'}</span>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Pincode:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700', marginLeft: '6px' }}>{agent.pin || '—'}</span>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>City</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.9rem', marginTop: '2px', display: 'block' }}>{agent.city || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>State</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.9rem', marginTop: '2px', display: 'block' }}>{agent.state || '—'}</span>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>PIN Code</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.9rem', marginTop: '2px', display: 'block' }}>{agent.pin || '—'}</span>
               </div>
             </div>
           </div>
 
           {/* Card 3: Verification Documents */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-              <FileText size={16} color="var(--primary)" />
-              <span>KYC Verification Documents</span>
-            </h2>
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>KYC Identity Documents</h2>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Government verification scans and authorized signature</span>
+              </div>
+            </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
               {/* Aadhaar Front */}
               {(() => {
                 const imageUrl = agent.aadhaar_front ? getMediaUrl(agent.aadhaar_front) : null;
                 return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '200px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Aadhaar Card (Front)</span>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '14px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#0f172a' }}>Aadhaar (Front)</span>
+                        <span style={{ fontSize: '0.68rem', color: imageUrl ? '#16a34a' : '#94a3b8', fontWeight: '700' }}>
+                          {imageUrl ? '● Uploaded' : '○ Not Uploaded'}
+                        </span>
+                      </div>
                       {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt="Aadhaar Front"
-                          style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
+                        <div 
                           onClick={() => { setZoomImage(imageUrl); setZoomTitle('Aadhaar Card (Front)'); }}
-                        />
+                          style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', height: '130px', border: '1px solid #cbd5e1', background: '#fff' }}
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(15,23,42,0.75)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Eye size={11} /> Click to zoom
+                          </div>
+                        </div>
                       ) : (
-                        <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)', gap: '4px' }}>
-                          <ShieldAlert size={20} style={{ opacity: 0.5 }} />
-                          <span>Not Uploaded</span>
+                        <div style={{ height: '130px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.75rem', background: '#f1f5f9', width: '100%', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                          <FileText size={24} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                          <span>No Document Uploaded</span>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dark)', fontWeight: '700', marginTop: '10px' }}>No: {agent.aadhaar || '—'}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: '750', marginTop: '10px', fontFamily: 'monospace' }}>
+                      {formatAadhaar(agent.aadhaar)}
+                    </div>
                   </div>
                 );
               })()}
@@ -896,24 +1207,38 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               {(() => {
                 const imageUrl = agent.aadhaar_back ? getMediaUrl(agent.aadhaar_back) : null;
                 return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '200px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Aadhaar Card (Back)</span>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '14px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#0f172a' }}>Aadhaar (Back)</span>
+                        <span style={{ fontSize: '0.68rem', color: imageUrl ? '#16a34a' : '#94a3b8', fontWeight: '700' }}>
+                          {imageUrl ? '● Uploaded' : '○ Not Uploaded'}
+                        </span>
+                      </div>
                       {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt="Aadhaar Back"
-                          style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
+                        <div 
                           onClick={() => { setZoomImage(imageUrl); setZoomTitle('Aadhaar Card (Back)'); }}
-                        />
+                          style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', height: '130px', border: '1px solid #cbd5e1', background: '#fff' }}
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(15,23,42,0.75)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Eye size={11} /> Click to zoom
+                          </div>
+                        </div>
                       ) : (
-                        <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)', gap: '4px' }}>
-                          <ShieldAlert size={20} style={{ opacity: 0.5 }} />
-                          <span>Not Uploaded</span>
+                        <div style={{ height: '130px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.75rem', background: '#f1f5f9', width: '100%', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                          <FileText size={24} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                          <span>No Document Uploaded</span>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dark)', fontWeight: '700', marginTop: '10px' }}>No: {agent.aadhaar || '—'}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: '750', marginTop: '10px', fontFamily: 'monospace' }}>
+                      {formatAadhaar(agent.aadhaar)}
+                    </div>
                   </div>
                 );
               })()}
@@ -922,24 +1247,38 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               {(() => {
                 const imageUrl = agent.pan_img ? getMediaUrl(agent.pan_img) : null;
                 return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '200px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>PAN Card</span>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '14px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#0f172a' }}>PAN Card</span>
+                        <span style={{ fontSize: '0.68rem', color: imageUrl ? '#16a34a' : '#94a3b8', fontWeight: '700' }}>
+                          {imageUrl ? '● Uploaded' : '○ Not Uploaded'}
+                        </span>
+                      </div>
                       {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt="PAN Card"
-                          style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
+                        <div 
                           onClick={() => { setZoomImage(imageUrl); setZoomTitle('PAN Card'); }}
-                        />
+                          style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', height: '130px', border: '1px solid #cbd5e1', background: '#fff' }}
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(15,23,42,0.75)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Eye size={11} /> Click to zoom
+                          </div>
+                        </div>
                       ) : (
-                        <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)', gap: '4px' }}>
-                          <ShieldAlert size={20} style={{ opacity: 0.5 }} />
-                          <span>Not Uploaded</span>
+                        <div style={{ height: '130px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.75rem', background: '#f1f5f9', width: '100%', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                          <FileText size={24} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                          <span>No Document Uploaded</span>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dark)', fontWeight: '700', marginTop: '10px' }}>No: {agent.pan || '—'}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: '750', marginTop: '10px', fontFamily: 'monospace' }}>
+                      PAN: {agent.pan || '—'}
+                    </div>
                   </div>
                 );
               })()}
@@ -948,24 +1287,38 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               {(() => {
                 const imageUrl = agent.signature ? getMediaUrl(agent.signature) : null;
                 return (
-                  <div style={{ border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', minHeight: '200px' }}>
-                    <div style={{ width: '100%', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', display: 'block' }}>Signature</span>
+                  <div style={{ border: '1px solid #e2e8f0', padding: '14px', borderRadius: '14px', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '750', color: '#0f172a' }}>Signature</span>
+                        <span style={{ fontSize: '0.68rem', color: imageUrl ? '#16a34a' : '#94a3b8', fontWeight: '700' }}>
+                          {imageUrl ? '● Uploaded' : '○ Not Uploaded'}
+                        </span>
+                      </div>
                       {imageUrl ? (
-                        <img 
-                          src={imageUrl} 
-                          alt="Signature"
-                          style={{ width: '100%', height: '120px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'zoom-in' }}
+                        <div 
                           onClick={() => { setZoomImage(imageUrl); setZoomTitle('Signature'); }}
-                        />
+                          style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'zoom-in', height: '130px', border: '1px solid #cbd5e1', background: '#fff' }}
+                        >
+                          <img 
+                            src={imageUrl} 
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: '6px', right: '6px', background: 'rgba(15,23,42,0.75)', color: 'white', padding: '3px 8px', borderRadius: '6px', fontSize: '0.68rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Eye size={11} /> Click to zoom
+                          </div>
+                        </div>
                       ) : (
-                        <div style={{ height: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.72rem', background: '#f1f5f9', width: '100%', borderRadius: '4px', border: '1px dashed var(--border)', gap: '4px' }}>
-                          <ShieldAlert size={20} style={{ opacity: 0.5 }} />
-                          <span>Not Uploaded</span>
+                        <div style={{ height: '130px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.75rem', background: '#f1f5f9', width: '100%', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                          <FileText size={24} style={{ opacity: 0.4, marginBottom: '6px' }} />
+                          <span>No Document Uploaded</span>
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-dark)', fontWeight: '700', marginTop: '10px' }}>—</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600', marginTop: '10px' }}>
+                      Authorized Sign
+                    </div>
                   </div>
                 );
               })()}
@@ -978,51 +1331,64 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* KYC Card */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KYC Information</h2>
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={16} />
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f172a', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                KYC Verification
+              </span>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Aadhaar:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{agent.aadhaar || '—'}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Aadhaar:</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontFamily: 'monospace' }}>{formatAadhaar(agent.aadhaar)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '2px' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>PAN Number:</span>
-                <span style={{ color: 'var(--text-dark)', fontWeight: '700' }}>{agent.pan || '—'}</span>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>PAN Number:</span>
+                <span style={{ color: '#0f172a', fontWeight: '750', fontFamily: 'monospace' }}>{agent.pan || '—'}</span>
               </div>
             </div>
           </div>
 
           {/* Login Information Card */}
-          <div className="premium-card" style={{ padding: '20px' }}>
-            <h2 style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-dark)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Key size={14} color="var(--primary)" />
-              Login Information
-            </h2>
+          <div className="premium-card" style={{ padding: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Key size={15} />
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#0f172a', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                Portal Credentials
+              </span>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8rem' }}>
-              <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Password:</span>
+              <span style={{ color: '#64748b', fontWeight: '600', fontSize: '0.72rem' }}>Agent Login Password</span>
               {loadingPassword ? (
                 <div style={{ color: '#0ea5e9', fontWeight: '600' }}>Loading password...</div>
               ) : !passwordData ? (
-                <div style={{ color: '#94a3b8', fontWeight: '600' }}>Password not available</div>
+                <div style={{ color: '#94a3b8', fontWeight: '600' }}>Password not generated</div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ 
                     flex: 1, 
                     background: '#f8fafc', 
-                    padding: '8px 12px', 
-                    borderRadius: '8px', 
-                    border: '1px solid var(--border)',
+                    padding: '10px 14px', 
+                    borderRadius: '10px', 
+                    border: '1px solid #e2e8f0',
                     fontFamily: 'monospace',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    color: 'var(--text-dark)'
+                    fontSize: '0.95rem',
+                    fontWeight: '750',
+                    color: '#0f172a'
                   }}>
-                    {showPassword ? passwordData : '••••••••'}
+                    {showPassword ? passwordData : '••••••••••••'}
                   </div>
                   <button 
                     onClick={() => setShowPassword(!showPassword)}
                     className="btn-secondary"
-                    style={{ padding: '8px', borderRadius: '8px' }}
+                    style={{ padding: '10px', borderRadius: '10px' }}
                     title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1033,7 +1399,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                       showToast('Password copied!', 'success');
                     }}
                     className="btn-secondary"
-                    style={{ padding: '8px', borderRadius: '8px' }}
+                    style={{ padding: '10px', borderRadius: '10px' }}
                     title="Copy Password"
                   >
                     <Copy size={16} />

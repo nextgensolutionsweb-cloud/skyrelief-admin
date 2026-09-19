@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, Shield, FileText, BarChart3, Plus, Trash2, Check, Image as ImageIcon } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const emptyForm = {
@@ -158,7 +158,7 @@ export default function InsuranceFormPage() {
   };
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!validateForm()) return;
 
     setSaving(true);
@@ -167,7 +167,6 @@ export default function InsuranceFormPage() {
     formData.append('description', form.description.trim());
     formData.append('term_condition', form.term_condition.trim());
     
-    // Process and format rules
     const formattedRules = ageRules.map(r => ({
       min_age: parseInt(r.min_age, 10),
       max_age: parseInt(r.max_age, 10),
@@ -228,66 +227,96 @@ export default function InsuranceFormPage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '12px' }}>
         <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid #f1f5f9', borderTopColor: '#0ea5e9', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#64748b' }}>Loading insurance details...</span>
+        <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0ea5e9' }}>Loading insurance details...</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '780px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button
-          onClick={() => router.back()}
-          className="btn-secondary"
-          style={{ padding: '6px 12px', borderRadius: '9999px', border: '1px solid #e8edf2' }}
-        >
-          <ArrowLeft size={16} /> <span>Back</span>
-        </button>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em' }}>
-            {isEditMode ? 'Edit Insurance Plan' : 'Create Insurance Plan'}
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px' }}>
-            {isEditMode ? `Update fields for ${form.name}` : 'Fill in fields to configure a new scheme'}
-          </p>
+    <div style={{ width: '100%', maxWidth: '1350px', margin: '0 auto', paddingBottom: '60px' }}>
+      
+      {/* Full Width Top Header Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '26px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', borderRadius: '9999px', fontSize: '0.82rem' }}
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} /> <span>Back</span>
+          </button>
+
+          <div>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em', margin: 0 }}>
+              {isEditMode ? 'Edit Insurance Plan' : 'Create Insurance Plan'}
+            </h1>
+            <p style={{ color: '#64748b', fontSize: '0.84rem', marginTop: '3px', fontWeight: '500' }}>
+              {isEditMode ? `Update details and configure rules for ${form.name}` : 'Fill in the fields below to configure a new scheme'}
+            </p>
+          </div>
+        </div>
+
+        {/* Top Header Action Buttons */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="btn-secondary"
+            style={{ padding: '9px 20px', borderRadius: '9999px' }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary"
+            style={{ padding: '9px 24px', borderRadius: '9999px', minWidth: '150px' }}
+          >
+            {saving ? (
+              <>
+                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Check size={16} strokeWidth={2.5} />
+                <span>{isEditMode ? 'Update Plan' : 'Save Plan'}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Cover Image & Plan Title card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            🛡️ Insurance Basics
-          </h2>
+      {/* Spacious 2-Column Full Screen Form Grid */}
+      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '24px' }}>
+        
+        {/* LEFT COLUMN: Basic Information & Detailed Content */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            {/* Image Preview Block */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e8edf2', width: '220px', boxSizing: 'border-box' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#334155' }}>Plan Cover Image</span>
-              
-              <div style={{ width: '100%', height: '130px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-                    <Upload size={24} style={{ margin: '0 auto 6px' }} />
-                    <span style={{ fontSize: '0.68rem' }}>No cover selected</span>
-                  </div>
-                )}
+          {/* Card 1: Basic Information */}
+          <div className="card" style={{ padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} strokeWidth={2.5} />
               </div>
-              
-              <input type="file" id="cover-upload" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-              <label htmlFor="cover-upload" className="btn-secondary" style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
-                Upload Image
-              </label>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                Basic Information
+              </h2>
             </div>
 
-            {/* Inputs Block */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '280px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Insurance Name *</label>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Insurance Name *</label>
                 <input
                   type="text"
                   required
@@ -298,198 +327,242 @@ export default function InsuranceFormPage() {
                   style={{ width: '100%' }}
                 />
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Plan Type *</label>
+                  <select
+                    value={form.plan_type}
+                    onChange={e => handleInputChange('plan_type', e.target.value)}
+                    className="premium-input"
+                    style={{ width: '100%' }}
+                  >
+                    <option value="1">Marriage Assistance (Shaadi Sahyog)</option>
+                    <option value="2">Death Assistance (Suraksha Sahyog)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Start Date (Laagu date)</label>
+                  <input
+                    type="date"
+                    value={form.start_date}
+                    onChange={e => handleInputChange('start_date', e.target.value)}
+                    className="premium-input"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Detailed Content & Terms */}
+          <div className="card" style={{ padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} strokeWidth={2.5} />
+              </div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                Detailed Content & Rules
+              </h2>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Start Date (Laagu date)</label>
-                <input
-                  type="date"
-                  value={form.start_date}
-                  onChange={e => handleInputChange('start_date', e.target.value)}
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Description *</label>
+                <textarea
+                  required
+                  value={form.description}
+                  onChange={e => handleInputChange('description', e.target.value)}
                   className="premium-input"
-                  style={{ width: '100%' }}
+                  placeholder="Describe key benefits, coverage limits, eligibility details, etc."
+                  rows={4}
+                  style={{ width: '100%', borderRadius: '16px', resize: 'vertical', fontFamily: 'inherit' }}
                 />
               </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Plan Type *</label>
-                <select
-                  value={form.plan_type}
-                  onChange={e => handleInputChange('plan_type', e.target.value)}
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Example Content (HTML/Text for Bond Certificate)</label>
+                <textarea
+                  value={form.example_html}
+                  onChange={e => handleInputChange('example_html', e.target.value)}
                   className="premium-input"
-                  style={{ width: '100%' }}
-                >
-                  <option value="1">Marriage Assistance (Shaadi Sahyog)</option>
-                  <option value="2">Death Assistance (Suraksha Sahyog)</option>
-                </select>
+                  placeholder="Enter HTML table or text content that shows the example rules on the certificate..."
+                  rows={5}
+                  style={{ width: '100%', borderRadius: '16px', resize: 'vertical', fontFamily: 'monospace' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Terms & Conditions *</label>
+                <textarea
+                  required
+                  value={form.term_condition}
+                  onChange={e => handleInputChange('term_condition', e.target.value)}
+                  className="premium-input"
+                  placeholder="Enter eligibility rules, exclusions, claim terms..."
+                  rows={4}
+                  style={{ width: '100%', borderRadius: '16px', resize: 'vertical', fontFamily: 'inherit' }}
+                />
               </div>
             </div>
           </div>
+
         </div>
 
-        {/* Description & Terms Conditions card */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            📄 Detailed Content
-          </h2>
+        {/* RIGHT COLUMN: Cover Image Dropzone & Age-wise Rules Table */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Description *</label>
-              <textarea
-                required
-                value={form.description}
-                onChange={e => handleInputChange('description', e.target.value)}
-                className="premium-input"
-                placeholder="Describe key benefits, coverage limits, etc."
-                rows={4}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
-              />
+          {/* Card 3: Plan Cover Image Dropzone */}
+          <div className="card" style={{ padding: '26px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={18} strokeWidth={2.5} />
+              </div>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                Plan Cover Image
+              </h2>
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Example Content (HTML/Text for Bond Certificate)</label>
-              <textarea
-                value={form.example_html}
-                onChange={e => handleInputChange('example_html', e.target.value)}
-                className="premium-input"
-                placeholder="Enter HTML table or text content that shows the example rules on the certificate..."
-                rows={6}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'monospace' }}
-              />
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                width: '100%',
+                height: '180px',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                border: '2px dashed #cbd5e1',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative'
+              }}>
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>
+                    <Upload size={32} style={{ margin: '0 auto 8px', color: '#0ea5e9' }} />
+                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>Click to upload plan cover image</div>
+                    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>PNG, JPG or WEBP up to 5MB</div>
+                  </div>
+                )}
+              </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Terms & Conditions *</label>
-              <textarea
-                required
-                value={form.term_condition}
-                onChange={e => handleInputChange('term_condition', e.target.value)}
-                className="premium-input"
-                placeholder="Enter eligibility rules, exclusions, claim terms..."
-                rows={4}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
-              />
+              <input type="file" id="cover-upload-full" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+              <label htmlFor="cover-upload-full" className="btn-secondary" style={{ width: '100%', padding: '10px', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', textAlign: 'center', boxSizing: 'border-box' }}>
+                {imagePreview ? 'Change Cover Image' : 'Select Cover Image'}
+              </label>
             </div>
           </div>
-        </div>
 
-        {/* Card 3: Age-wise Payment Rules */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-            <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              📊 Age-wise Payment Rules
-            </h2>
-            <button 
-              type="button"
-              onClick={handleAddRule}
-              className="btn-primary"
-              style={{ padding: '6px 12px', fontSize: '0.72rem' }}
-            >
-              ➕ Add Age Rule
-            </button>
-          </div>
+          {/* Card 4: Age-wise Payment Rules */}
+          <div className="card" style={{ padding: '26px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BarChart3 size={18} strokeWidth={2.5} />
+                </div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+                  Age-wise Payment Rules
+                </h2>
+              </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', color: '#64748b', width: '110px' }}>Min Age</th>
-                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', color: '#64748b', width: '110px' }}>Max Age</th>
-                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', color: '#64748b' }}>Installment Fee (₹) *</th>
-                  <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', color: '#64748b' }}>Joining Fee (₹) *</th>
-                  <th style={{ padding: '10px', textAlign: 'center', fontWeight: '700', color: '#64748b', width: '80px' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ageRules.map((rule, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 10px' }}>
-                      <input 
-                        type="number" 
-                        required 
-                        min="0"
-                        value={rule.min_age} 
-                        onChange={e => handleRuleChange(idx, 'min_age', e.target.value)}
-                        className="premium-input" 
-                        style={{ width: '80px', padding: '6px' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <input 
-                        type="number" 
-                        required 
-                        min="0"
-                        value={rule.max_age} 
-                        onChange={e => handleRuleChange(idx, 'max_age', e.target.value)}
-                        className="premium-input" 
-                        style={{ width: '80px', padding: '6px' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <input 
-                        type="number" 
-                        required 
-                        min="1"
-                        placeholder="e.g. 50"
-                        value={rule.amount} 
-                        onChange={e => handleRuleChange(idx, 'amount', e.target.value)}
-                        className="premium-input" 
-                        style={{ width: '100%', minWidth: '100px', padding: '6px' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <input 
-                        type="number" 
-                        required 
-                        min="0"
-                        placeholder="e.g. 500"
-                        value={rule.joining_fee} 
-                        onChange={e => handleRuleChange(idx, 'joining_fee', e.target.value)}
-                        className="premium-input" 
-                        style={{ width: '100%', minWidth: '100px', padding: '6px' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                      <button 
-                        type="button" 
-                        onClick={() => handleDeleteRule(idx)}
-                        disabled={ageRules.length <= 1}
-                        style={{ background: 'none', border: 'none', color: ageRules.length <= 1 ? '#cbd5e1' : '#ef4444', fontWeight: '600', cursor: ageRules.length <= 1 ? 'not-allowed' : 'pointer', fontSize: '0.75rem' }}
-                      >
-                        Delete
-                      </button>
-                    </td>
+              <button 
+                type="button"
+                onClick={handleAddRule}
+                className="btn-primary"
+                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+              >
+                <Plus size={14} strokeWidth={2.5} /> Add Rule
+              </button>
+            </div>
+
+            <div style={{ overflowX: 'auto', borderRadius: '14px', border: '1.5px solid #e2e8f0' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '800', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Min Age</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '800', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Max Age</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '800', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Installment (₹) *</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: '800', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Joining (₹) *</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'center', fontWeight: '800', color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase', width: '70px' }}>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {ageRules.map((rule, idx) => (
+                    <tr key={idx} style={{ borderBottom: idx < ageRules.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                      <td style={{ padding: '10px 14px' }}>
+                        <input 
+                          type="number" 
+                          required 
+                          min="0"
+                          value={rule.min_age} 
+                          onChange={e => handleRuleChange(idx, 'min_age', e.target.value)}
+                          className="premium-input" 
+                          style={{ width: '80px', padding: '8px 10px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <input 
+                          type="number" 
+                          required 
+                          min="0"
+                          value={rule.max_age} 
+                          onChange={e => handleRuleChange(idx, 'max_age', e.target.value)}
+                          className="premium-input" 
+                          style={{ width: '80px', padding: '8px 10px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <input 
+                          type="number" 
+                          required 
+                          min="1"
+                          placeholder="e.g. 50"
+                          value={rule.amount} 
+                          onChange={e => handleRuleChange(idx, 'amount', e.target.value)}
+                          className="premium-input" 
+                          style={{ width: '100%', minWidth: '95px', padding: '8px 10px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <input 
+                          type="number" 
+                          required 
+                          min="0"
+                          placeholder="e.g. 500"
+                          value={rule.joining_fee} 
+                          onChange={e => handleRuleChange(idx, 'joining_fee', e.target.value)}
+                          className="premium-input" 
+                          style={{ width: '100%', minWidth: '95px', padding: '8px 10px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => handleDeleteRule(idx)}
+                          disabled={ageRules.length <= 1}
+                          style={{
+                            background: ageRules.length <= 1 ? 'none' : '#fef2f2',
+                            border: 'none',
+                            color: ageRules.length <= 1 ? '#cbd5e1' : '#ef4444',
+                            padding: '6px',
+                            borderRadius: '8px',
+                            cursor: ageRules.length <= 1 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '16px', marginTop: '10px' }}>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="btn-secondary"
-            style={{ flex: 1, padding: '12px', borderRadius: '9999px', fontWeight: '600' }}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-primary"
-            style={{ flex: 2, padding: '12px', borderRadius: '9999px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-          >
-            {saving ? (
-              <>
-                <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                <span>Saving Plan...</span>
-              </>
-            ) : (
-              <span>{isEditMode ? 'Update Insurance Plan' : 'Create Insurance Plan'}</span>
-            )}
-          </button>
-        </div>
       </form>
     </div>
   );
