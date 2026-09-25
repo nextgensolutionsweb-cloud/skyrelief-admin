@@ -185,6 +185,9 @@ export default function NotificationsPage() {
             >
               Previous
             </button>
+            <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', fontSize: '0.82rem', fontWeight: '700', color: '#334155' }}>
+              Page {page} of {Math.ceil(total / limit) || 1}
+            </span>
             <button 
               disabled={page * limit >= total} 
               onClick={() => setPage(p => p + 1)}

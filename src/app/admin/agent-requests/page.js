@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History, Mic, Square, Play, Trash2, CreditCard } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 import Modal from '@/components/Modal';
@@ -9,11 +9,15 @@ const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.o
 
 export default function AgentRequestsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'history'
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabParam === 'history' || tabParam === 'rejected' ? 'history' : 'pending');
 
   const [requests, setRequests] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const loading = activeTab === 'pending' ? loadingRequests : loadingLogs;
 
   // Reject Modal State
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -176,16 +180,32 @@ export default function AgentRequestsPage() {
 
 
   useEffect(() => {
-    setCurrentPage(1);
-    if (activeTab === 'pending') {
-      fetchRequests();
-    } else {
-      fetchLogs();
+    if (tabParam === 'history' || tabParam === 'rejected') {
+      setActiveTab('history');
+    } else if (tabParam === 'pending') {
+      setActiveTab('pending');
     }
+  }, [tabParam]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [activeTab]);
 
+  useEffect(() => {
+    fetchRequests();
+    fetchLogs();
+  }, []);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   const fetchRequests = async () => {
-    setLoading(true);
+    setLoadingRequests(true);
     try {
       const res = await apiRequest('/api/admin/agent-requests');
       if (res.s === 1) {
@@ -194,12 +214,12 @@ export default function AgentRequestsPage() {
     } catch (err) {
       showToast('Failed to fetch agent requests', 'error');
     } finally {
-      setLoading(false);
+      setLoadingRequests(false);
     }
   };
 
   const fetchLogs = async () => {
-    setLoading(true);
+    setLoadingLogs(true);
     try {
       const res = await apiRequest('/api/admin/agent-requests/logs');
       if (res.s === 1) {
@@ -208,7 +228,7 @@ export default function AgentRequestsPage() {
     } catch (err) {
       showToast('Failed to fetch rejected history', 'error');
     } finally {
-      setLoading(false);
+      setLoadingLogs(false);
     }
   };
 
@@ -261,6 +281,7 @@ export default function AgentRequestsPage() {
         showToast('Request rejected and removed successfully', 'success');
         setShowRejectModal(false);
         fetchRequests();
+        fetchLogs();
       } else {
         showToast(res.m || 'Failed to reject request', 'error');
       }
@@ -292,7 +313,7 @@ export default function AgentRequestsPage() {
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <button
-          onClick={() => setActiveTab('pending')}
+          onClick={() => handleTabChange('pending')}
           style={{
             padding: '8px 18px',
             borderRadius: '9999px',
@@ -309,7 +330,7 @@ export default function AgentRequestsPage() {
           Pending Requests ({requests.length})
         </button>
         <button
-          onClick={() => setActiveTab('history')}
+          onClick={() => handleTabChange('history')}
           style={{
             padding: '8px 18px',
             borderRadius: '9999px',

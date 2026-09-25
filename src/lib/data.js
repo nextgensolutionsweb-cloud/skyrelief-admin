@@ -176,9 +176,7 @@ export const getMemberById     = (id)       => members.find(m => m.id === id);
 export const getAgentById      = (id)       => agents.find(a => a.id === id);
 
 export const formatCurrency = (n) => {
-  if (!n && n !== 0) return '₹0';
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)} Cr`;
-  if (n >= 100000)   return `₹${(n / 100000).toFixed(1)} L`;
-  if (n >= 1000)     return `₹${(n / 1000).toFixed(1)}K`;
-  return `₹${n}`;
+  if (n === null || n === undefined || n === '' || isNaN(Number(n))) return '₹0';
+  const num = Number(n);
+  return `₹${num.toLocaleString('en-IN')}`;
 };

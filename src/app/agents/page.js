@@ -244,8 +244,12 @@ export default function AgentsPage() {
                           <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#0f172a' }}>
                             {a.first_name} {a.last_name}
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                            Code: AG-{a.id}
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {/* <span>Code: AG-{a.id}</span> */}
+                            {/* <span>•</span> */}
+                            <span style={{ fontWeight: '750', color: '#0284c7' }}>
+                              {a.total_members || 0} Members
+                            </span>
                           </div>
                         </div>
                       </div>

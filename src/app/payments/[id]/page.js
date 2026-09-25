@@ -109,13 +109,22 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     try {
+      const clean = String(dateStr).split('T')[0];
+      const parts = clean.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = parts[2].padStart(2, '0');
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parts[0];
+        if (monthIdx >= 0 && monthIdx < 12) {
+          return `${day} ${months[monthIdx]} ${year}`;
+        }
+      }
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return "-";
-      const day = String(d.getDate()).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const month = months[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day} ${month} ${year}`;
+      return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     } catch (e) {
       return "-";
     }
@@ -469,7 +478,7 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
                 <tr style={{ background: '#f8fafc' }}>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Member Code</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Member Name</th>
-                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Mobile</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Due Date</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Agent Name</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Amount</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Status</th>
@@ -491,7 +500,9 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
                       <td style={{ padding: '12px 20px', fontSize: '0.82rem', fontWeight: '700', color: '#0f172a' }}>
                         {due.member_name || due.full_name || '-'}
                       </td>
-                      <td style={{ padding: '12px 20px', fontSize: '0.82rem', color: '#334155' }}>{due.phone || '-'}</td>
+                      <td style={{ padding: '12px 20px', fontSize: '0.82rem', color: '#334155', fontWeight: '600' }}>
+                        {formatDate(due.due_date || summary?.due_date)}
+                      </td>
                       <td style={{ padding: '12px 20px', fontSize: '0.82rem', color: '#334155' }}>{due.agent_name || '-'}</td>
                       <td style={{ padding: '12px 20px', fontSize: '0.82rem', fontWeight: '700', color: '#0f172a' }}>{formatCurrency(due.amount || 0)}</td>
                       <td style={{ padding: '12px 20px' }}>

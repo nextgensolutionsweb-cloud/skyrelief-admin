@@ -161,9 +161,11 @@ export default function Dashboard() {
   const memberMetrics = [
     { label: 'Total Members',     value: summary?.total_members?.toLocaleString() || '0', iconBg: '#e0f2fe', iconColor: '#0284c7', emoji: '👥', href: '/members' },
     { label: 'Active Members',    value: summary?.active_members?.toLocaleString() || '0', iconBg: '#dcfce7', iconColor: '#16a34a', emoji: '✅', href: '/members' },
-    { label: 'Pending Requests',  value: summary?.pending_requests?.toLocaleString() || '0', iconBg: '#fef3c7', iconColor: '#d97706', emoji: '⏳', href: '/admin/agent-requests' },
+    { label: 'Married Members',   value: summary?.married_members?.toLocaleString() || '0', iconBg: '#fdf2f8', iconColor: '#db2777', emoji: '💍', href: '/members?filter=married' },
+    { label: 'Upcoming Marriages', value: summary?.upcoming_members?.toLocaleString() || '0', iconBg: '#fef3c7', iconColor: '#d97706', emoji: '⏳', href: '/members?filter=upcoming' },
+    { label: 'Completed Members', value: summary?.completed_members?.toLocaleString() || '0', iconBg: '#f3e8ff', iconColor: '#7e22ce', emoji: '🏆', href: '/members?filter=completed' },
     { label: 'Suspended Members', value: summary?.suspended_account_members?.toLocaleString() || '0', iconBg: '#fee2e2', iconColor: '#dc2626', emoji: '⏸️', href: '/members?filter=suspended' },
-    { label: 'Rejected Members',  value: summary?.rejected_members?.toLocaleString() || '0', iconBg: '#fce7f3', iconColor: '#db2777', emoji: '❌', href: '/members?filter=rejected' },
+    // { label: 'Rejected Members',  value: summary?.rejected_members?.toLocaleString() || '0', iconBg: '#fce7f3', iconColor: '#db2777', emoji: '❌', href: '/admin/agent-requests?tab=history' },
   ];
 
   const agentMetrics = [

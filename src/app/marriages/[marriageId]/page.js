@@ -1,18 +1,22 @@
 'use client';
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Heart, Download, Calendar, User, Phone, Briefcase, FileText, Upload, Clock, File } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, Edit, Heart, Download, Calendar, User, Phone, Briefcase, FileText, Upload, Clock, File, Shield, Award } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
   Upcoming: { bg: '#dbeafe', color: '#1d4ed8', label: 'Upcoming' },
-  Married: { bg: '#dcfce7', color: '#15803d', label: 'Married' },
+  Married: { bg: '#dcfce7', color: '#15803d', label: 'Settled' },
+  Settled: { bg: '#dcfce7', color: '#15803d', label: 'Settled' },
+  Completed: { bg: '#f3e8ff', color: '#7e22ce', label: 'Completed' },
+  Reported: { bg: '#fef3c7', color: '#b45309', label: 'Reported' },
   Deleted: { bg: '#fee2e2', color: '#991b1b', label: 'Deleted' },
   'Payment Campaign Generated': { bg: '#ede9fe', color: '#6d28d9', label: 'Payment Campaign Generated' },
   
   // Numeric key fallbacks
   1: { bg: '#dbeafe', color: '#1d4ed8', label: 'Upcoming' },
-  2: { bg: '#dcfce7', color: '#15803d', label: 'Married' },
+  2: { bg: '#dcfce7', color: '#15803d', label: 'Settled' },
+  3: { bg: '#f3e8ff', color: '#7e22ce', label: 'Completed' },
   0: { bg: '#fee2e2', color: '#991b1b', label: 'Deleted' },
   '-1': { bg: '#fee2e2', color: '#991b1b', label: 'Deleted' },
 };
@@ -21,10 +25,13 @@ const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.o
 
 export default function MarriageDetailPage({ params: paramsPromise }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDeathQuery = searchParams.get('type') === 'death';
   const params = use(paramsPromise);
   const { marriageId } = params;
 
   const [marriage, setMarriage] = useState(null);
+  const [isDeathCase, setIsDeathCase] = useState(isDeathQuery);
   const [loading, setLoading] = useState(true);
 
   // Settlement Modal States
@@ -35,22 +42,41 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
   const [settlePhotoPreview, setSettlePhotoPreview] = useState('');
   const [settling, setSettling] = useState(false);
 
+  // Complete Tenure Modal States
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [completing, setCompleting] = useState(false);
+
   // Zoom lightbox
   const [zoomImage, setZoomImage] = useState(null);
 
   const fetchMarriage = async () => {
     setLoading(true);
     try {
-      const res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
-      if (res.s === 1 && res.r) {
-        setMarriage(res.r);
-        setSettleAmount(res.r.amount || '25000');
+      let res;
+      if (isDeathQuery) {
+        res = await apiRequest(`/api/death/get?id=${marriageId}`);
+        if (res.s === 1 && res.r) setIsDeathCase(true);
       } else {
-        showToast(res.m || 'Failed to fetch marriage details.', 'error');
+        res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
+        if (res.s !== 1 || !res.r) {
+          const deathRes = await apiRequest(`/api/death/get?id=${marriageId}`);
+          if (deathRes.s === 1 && deathRes.r) {
+            res = deathRes;
+            setIsDeathCase(true);
+          }
+        }
+      }
+
+      if (res && res.s === 1 && res.r) {
+        setMarriage(res.r);
+        setSettleAmount(res.r.amount_given || res.r.amount || (isDeathCase ? '50000' : '25000'));
+      } else {
+        showToast(res?.m || 'Failed to fetch details.', 'error');
       }
     } catch (err) {
-      console.error('Error fetching marriage details:', err);
-      showToast('Error loading marriage record.', 'error');
+      console.error('Error fetching details:', err);
+      showToast('Error loading record.', 'error');
     } finally {
       setLoading(false);
     }
@@ -87,23 +113,50 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     }
 
     try {
-      const res = await apiRequest('/api/marriage/mark-as-married', {
+      const endpoint = isDeathCase ? '/api/death/mark-as-settled' : '/api/marriage/mark-as-married';
+      const res = await apiRequest(endpoint, {
         method: 'POST',
         body: formData
       });
 
       if (res.s === 1) {
-        showToast(res.m || 'Member marked as married successfully', 'success');
+        showToast(res.m || (isDeathCase ? 'Claim marked as settled successfully' : 'Member marked as married successfully'), 'success');
         setSettleOpen(false);
         fetchMarriage();
       } else {
-        showToast(res.m || 'Failed to settle marriage.', 'error');
+        showToast(res.m || 'Failed to settle record.', 'error');
       }
     } catch (err) {
-      console.error('Error settling marriage:', err);
-      showToast('An error occurred while settling the marriage.', 'error');
+      console.error('Error settling case:', err);
+      showToast('An error occurred while settling.', 'error');
     } finally {
       setSettling(false);
+    }
+  };
+
+  const handleConfirmComplete = async (e) => {
+    e.preventDefault();
+    setCompleting(true);
+    try {
+      const res = await apiRequest('/api/marriage/mark-as-completed', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: marriageId,
+          notes: completeNotes
+        })
+      });
+      if (res.s === 1) {
+        showToast(res.m || 'Marriage case marked as Completed successfully.', 'success');
+        setCompleteOpen(false);
+        fetchMarriage();
+      } else {
+        showToast(res.m || 'Failed to complete record.', 'error');
+      }
+    } catch (err) {
+      console.error('Error completing case:', err);
+      showToast('An error occurred while completing.', 'error');
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -138,7 +191,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
 
   const getMarriageDate = (item) => {
     if (!item) return 'N/A';
-    const rawDate = item.marriage_date || item.date;
+    const rawDate = item.death_date || item.marriage_date || item.date;
     return rawDate ? rawDate.split('T')[0] : 'N/A';
   };
 
@@ -185,15 +238,15 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
         style={{ marginBottom: '20px', padding: '6px 14px', borderRadius: '9999px', display: 'flex', alignItems: 'center', gap: '6px' }}
       >
         <ArrowLeft size={16} strokeWidth={2.5} />
-        <span>Back to Marriage List</span>
+        <span>{isDeathCase ? 'Back to Death Claims' : 'Back to Marriage List'}</span>
       </button>
 
       {/* Main Header Card */}
       <div className="card" style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '8px', background: 'linear-gradient(135deg,#0ea5e9,#6366f1)' }}></div>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '8px', background: isDeathCase ? 'linear-gradient(135deg,#f59e0b,#d97706)' : 'linear-gradient(135deg,#0ea5e9,#6366f1)' }}></div>
 
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#ede9fe', color: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', flexShrink: 0 }}>
-          💍
+        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: isDeathCase ? '#fef3c7' : '#ede9fe', color: isDeathCase ? '#d97706' : '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', flexShrink: 0 }}>
+          {isDeathCase ? '🛡️' : '💍'}
         </div>
 
         <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -207,23 +260,32 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
               </span>
             </div>
             <p style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '600', display: 'flex', gap: '16px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> Scheduled: {getMarriageDate(marriage)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {isDeathCase ? 'Death Date:' : 'Scheduled:'} {getMarriageDate(marriage)}</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={14} /> Member: {getMemberName(marriage)}</span>
             </p>
           </div>
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button className="btn-secondary" onClick={() => router.push(`/marriages/form?id=${marriageId}`)} style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button className="btn-secondary" onClick={() => router.push(`/marriages/form?id=${marriageId}${isDeathCase ? '&type=death' : ''}`)} style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Edit size={14} /> <span>Edit Details</span>
             </button>
-            {(marriage.status === 'Upcoming' || marriage.status === 1 || marriage.status === '1') && (
+            {((!isDeathCase && (marriage.status === 'Upcoming' || marriage.status === 1 || marriage.status === '1')) || (isDeathCase && (marriage.status === 1 || marriage.status === '1' || marriage.status === 'Reported'))) && (
               <button
                 className="btn-primary"
                 onClick={() => setSettleOpen(true)}
                 style={{ padding: '6px 12px', fontSize: '0.78rem', background: 'linear-gradient(135deg,#10b981,#059669)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <Heart size={14} /> <span>Mark As Married</span>
+                <Heart size={14} /> <span>{isDeathCase ? 'Mark As Settled' : 'Mark As Married'}</span>
+              </button>
+            )}
+            {(!isDeathCase && (Number(marriage.status) === 2 || marriage.status === 'Married' || marriage.status === 'Settled')) && (
+              <button
+                className="btn-primary"
+                onClick={() => setCompleteOpen(true)}
+                style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', color: '#fff', borderRadius: '10px', cursor: 'pointer', fontWeight: '700' }}
+              >
+                <Award size={14} /> <span>Mark as Completed (Stop Dues)</span>
               </button>
             )}
           </div>
@@ -235,20 +297,20 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
         
         {/* Left Column: Info Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Section 1: Marriage Information */}
+          {/* Section 1: Marriage / Death Information */}
           <div className="card" style={{ padding: '20px' }}>
             <h2 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-              <Calendar size={16} style={{ color: '#6366f1' }} />
-              <span>Marriage Information</span>
+              <Calendar size={16} style={{ color: isDeathCase ? '#f59e0b' : '#6366f1' }} />
+              <span>{isDeathCase ? 'Death Claim Information' : 'Marriage Information'}</span>
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.82rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600' }}>Marriage ID:</span>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Case ID:</span>
                 <span style={{ color: '#0f172a', fontWeight: '700', fontFamily: 'monospace' }}>{marriage.id || marriage.marriage_id}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
-                <span style={{ color: '#64748b', fontWeight: '600' }}>Marriage Date:</span>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>{isDeathCase ? 'Death Date:' : 'Marriage Date:'}</span>
                 <span style={{ color: '#0f172a', fontWeight: '700' }}>{getMarriageDate(marriage)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
@@ -258,6 +320,18 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Created Date:</span>
                 <span style={{ color: '#0f172a', fontWeight: '700' }}>{marriage.created_at ? marriage.created_at.split('T')[0] : 'N/A'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>Payment Campaign:</span>
+                {marriage.campaign_no ? (
+                  <span style={{ color: '#059669', fontWeight: '800', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                    ✓ Campaign Run ({marriage.campaign_no})
+                  </span>
+                ) : (
+                  <span style={{ color: '#b45309', fontWeight: '700', background: '#fffbeb', padding: '2px 8px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                    ⏳ Pending (Not Run)
+                  </span>
+                )}
               </div>
               {marriage.amount_given && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
@@ -459,6 +533,56 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
                     </>
                   ) : (
                     <span>Confirm Settlement</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Tenure Modal */}
+      {completeOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setCompleteOpen(false)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '460px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              🏆 Mark Marriage Tenure as Completed
+            </h2>
+            
+            <form onSubmit={handleConfirmComplete} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#f5f3ff', padding: '14px', borderRadius: '12px', border: '1px solid #ddd6fe', fontSize: '0.82rem', color: '#4c1d95' }}>
+                <div><strong>Member:</strong> {getMemberName(marriage)}</div>
+                <div style={{ marginTop: '4px' }}><strong>Plan:</strong> {getPlanName(marriage)}</div>
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#6d28d9', lineHeight: 1.4 }}>
+                  ℹ️ Once marked as <strong>Completed</strong>, this member's marriage service will conclude and they will <strong>no longer receive new campaign installment dues</strong> for this plan.
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Completion Notes (Optional)</label>
+                <textarea
+                  value={completeNotes}
+                  onChange={e => setCompleteNotes(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%', resize: 'none', fontFamily: 'inherit', borderRadius: '12px' }}
+                  placeholder="E.g., All tenure contributions completed, services discharged..."
+                  rows={3}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setCompleteOpen(false)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={completing} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700', background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#fff' }}>
+                  {completing ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Completed</span>
                   )}
                 </button>
               </div>

@@ -1,15 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Eye, Pencil, Trash2, Download, FileText, CheckSquare, Square } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, Download, FileText, CheckSquare, Square, Award } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 import { ConfirmModal } from '@/components/Modal';
 
 const insuranceStatusStyle = {
   0: { bg: '#fef9c3', color: '#854d0e', label: 'Pending' },
   1: { bg: '#dcfce7', color: '#15803d', label: 'Active' },
-  2: { bg: '#fee2e2', color: '#991b1b', label: 'Rejected' },
+  2: { bg: '#eff6ff', color: '#1d4ed8', label: 'Married' },
   3: { bg: '#f3e8ff', color: '#7e22ce', label: 'Invoice Generated' },
+  4: { bg: '#f3e8ff', color: '#7e22ce', label: 'Completed' },
+  5: { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' },
   '-1': { bg: '#f1f5f9', color: '#475569', label: 'Removed' },
 };
 
@@ -31,7 +33,9 @@ export default function MembersListPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
-  const initialMainFilter = searchParams.get('filter') || (searchParams.get('account_status') === '2' ? 'suspended' : 'active');
+  const validFilters = ['all', 'active', 'married', 'completed', 'upcoming', 'suspended'];
+  const filterParam = searchParams.get('filter');
+  const initialMainFilter = (validFilters.includes(filterParam) ? filterParam : null) || (searchParams.get('account_status') === '2' ? 'suspended' : 'active');
   const initialAgentId = searchParams.get('agent_id') || '';
   const initialPlanId = searchParams.get('plan_id') || '';
   const initialMinAge = searchParams.get('min_age') || '';
@@ -81,6 +85,46 @@ export default function MembersListPage() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [docType, setDocType] = useState('bond'); // 'bond' or 'certificate'
 
+  // Complete Tenure Modal State
+  const [completeItem, setCompleteItem] = useState(null);
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [completing, setCompleting] = useState(false);
+
+  const openCompleteModal = (item) => {
+    setCompleteItem(item);
+    setCompleteNotes('');
+  };
+
+  const handleConfirmComplete = async (e) => {
+    e.preventDefault();
+    if (!completeItem) return;
+    setCompleting(true);
+    try {
+      const res = await apiRequest('/api/member/update-insurance-status', {
+        method: 'POST',
+        body: JSON.stringify({
+          member_insurance_id: completeItem.insurance_id,
+          member_id: completeItem.member_id || completeItem.id,
+          plan_id: completeItem.plan_id,
+          status: 4,
+          notes: completeNotes
+        })
+      });
+      if (res.s === 1) {
+        showToast(res.m || 'Member tenure marked as Completed successfully.', 'success');
+        setCompleteItem(null);
+        fetchMembers();
+      } else {
+        showToast(res.m || 'Failed to complete record.', 'error');
+      }
+    } catch (err) {
+      console.error('Error completing member tenure:', err);
+      showToast('An error occurred while marking completed.', 'error');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const fetchDependencies = async () => {
     try {
       const [agentsRes, plansRes] = await Promise.all([
@@ -110,11 +154,10 @@ export default function MembersListPage() {
         reqInsuranceStatus = '1';
       } else if (mainFilter === 'suspended') {
         reqAccountStatus = '2';
-        reqInsuranceStatus = '!2';
-      } else if (mainFilter === 'rejected') {
-        reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
-        reqMarriageStatus = '2';
+        reqInsuranceStatus = '2';
+      } else if (mainFilter === 'completed') {
+        reqInsuranceStatus = '4';
       } else if (mainFilter === 'upcoming') {
         reqMarriageStatus = '1';
       }
@@ -522,9 +565,9 @@ export default function MembersListPage() {
                   { label: 'All', val: 'all' },
                   { label: 'Active', val: 'active' },
                   { label: 'Married', val: 'married' },
+                  { label: 'Completed', val: 'completed' },
                   { label: 'Upcoming', val: 'upcoming' },
-                  { label: 'Suspended', val: 'suspended' },
-                  { label: 'Rejected', val: 'rejected' }
+                  { label: 'Suspended', val: 'suspended' }
                 ].map(t => (
                   <button
                     key={t.val}
@@ -694,6 +737,8 @@ export default function MembersListPage() {
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Insurance Plan</th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Registered By</th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Insurance Status</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#16a34a', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Paid Slips</th>
+                  <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#dc2626', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Pending Slips</th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Joining Date</th>
                   <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Actions</th>
                 </tr>
@@ -701,7 +746,7 @@ export default function MembersListPage() {
               <tbody>
                 {list.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={10} style={{ padding: '60px 16px', textAlign: 'center', color: '#64748b' }}>
                       <div style={{ fontSize: '2rem', marginBottom: '8px' }}>👥</div>
                       <div style={{ fontWeight: '800', fontSize: '0.95rem', color: '#0f172a' }}>No Members Found</div>
                       <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>Try clearing filters or changing your search term.</div>
@@ -717,10 +762,22 @@ export default function MembersListPage() {
                     const plan = getPlanName(item);
                     const planType = getPlanType(item);
                     const agent = getAgentName(item);
+                    const insStatus = Number(item.insurance_status);
+                    const accStatus = Number(item.account_status);
+                    const isCompleted = insStatus === 4;
+                    const isMarried = insStatus === 2;
+                    const isDeceased = insStatus === 5 || (planType === 2 && (insStatus === 3 || insStatus === 2));
+                    const isSuspended = accStatus === 2 && !isCompleted && !isMarried && !isDeceased;
+
                     let insStatusInfo = insuranceStatusStyle[item.insurance_status] || { bg: '#f1f5f9', color: '#475569', label: 'Unknown' };
-                    
-                    if (planType === 2 && (String(item.insurance_status) === '3' || String(item.insurance_status) === '2')) {
+                    if (isCompleted) {
+                      insStatusInfo = { bg: '#f3e8ff', color: '#7e22ce', label: 'Completed' };
+                    } else if (isMarried && !isDeceased) {
+                      insStatusInfo = { bg: '#eff6ff', color: '#1d4ed8', label: 'Married' };
+                    } else if (isDeceased) {
                       insStatusInfo = { bg: '#fee2e2', color: '#991b1b', label: 'Deceased' };
+                    } else if (isSuspended) {
+                      insStatusInfo = { bg: '#fee2e2', color: '#ef4444', label: 'Suspended' };
                     }
                     
                     const joiningDateRaw = item.insurance_joining_date || item.joining_date || item.created_at;
@@ -759,12 +816,15 @@ export default function MembersListPage() {
                             <div>
                               <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {name}
-                                {item.account_status === 2 && item.insurance_status !== 2 && insStatusInfo.label !== 'Deceased' && (
+                                {isCompleted ? (
+                                  <span style={{ padding: '2px 6px', background: '#f3e8ff', color: '#7e22ce', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Completed</span>
+                                ) : (isMarried && !isDeceased) ? (
+                                  <span style={{ padding: '2px 6px', background: '#eff6ff', color: '#1d4ed8', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Married</span>
+                                ) : isDeceased ? (
+                                  <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Deceased</span>
+                                ) : isSuspended ? (
                                   <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Suspended</span>
-                                )}
-                                {String(item.insurance_status) === '2' && insStatusInfo.label !== 'Deceased' && (
-                                  <span style={{ padding: '2px 6px', background: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>Rejected</span>
-                                )}
+                                ) : null}
                               </div>
                               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontWeight: '600' }}>Code: <span style={{ color: '#0f172a' }}>{memberCode}</span></div>
                             </div>
@@ -791,6 +851,36 @@ export default function MembersListPage() {
                           </span>
                         </td>
 
+                        {/* Paid Slips */}
+                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            borderRadius: '8px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: '700', 
+                            background: Number(item.paid_slips_count || 0) > 0 ? '#dcfce7' : '#f1f5f9', 
+                            color: Number(item.paid_slips_count || 0) > 0 ? '#15803d' : '#94a3b8',
+                            display: 'inline-block' 
+                          }}>
+                            ₹{Number(item.paid_slips_amount || 0).toFixed(0)} ({item.paid_slips_count || 0})
+                          </span>
+                        </td>
+
+                        {/* Pending Slips */}
+                        <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            borderRadius: '8px', 
+                            fontSize: '0.75rem', 
+                            fontWeight: '700', 
+                            background: Number(item.pending_slips_count || 0) > 0 ? '#fee2e2' : '#f1f5f9', 
+                            color: Number(item.pending_slips_count || 0) > 0 ? '#b91c1c' : '#94a3b8',
+                            display: 'inline-block' 
+                          }}>
+                            ₹{Number(item.pending_slips_amount || 0).toFixed(0)} ({item.pending_slips_count || 0})
+                          </span>
+                        </td>
+
                         {/* Joining Date */}
                         <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>{joiningDate}</td>
 
@@ -804,6 +894,17 @@ export default function MembersListPage() {
                             >
                               <Eye size={16} />
                             </button>
+
+                            {Number(item.insurance_status) === 2 && (
+                              <button
+                                title="Mark Tenure as Completed (Stop Dues)"
+                                onClick={() => openCompleteModal(item)}
+                                style={{ color: '#7e22ce', cursor: 'pointer', padding: '6px', borderRadius: '8px', border: '1px solid #e9d5ff', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <Award size={16} />
+                              </button>
+                            )}
+
                             {insuranceId && (
                               <button
                                 title="Generate Membership Bond"
@@ -1012,6 +1113,55 @@ export default function MembersListPage() {
                 Generate ({selectedIds.length})
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Mark Completed Modal */}
+      {completeItem && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setCompleteItem(null)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '460px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              🏆 Mark Member Tenure as Completed
+            </h2>
+            
+            <form onSubmit={handleConfirmComplete} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#f5f3ff', padding: '14px', borderRadius: '12px', border: '1px solid #ddd6fe', fontSize: '0.82rem', color: '#4c1d95' }}>
+                <div><strong>Member:</strong> {completeItem.first_name} {completeItem.middle_name || ''} {completeItem.last_name || ''} ({completeItem.member_code})</div>
+                <div style={{ marginTop: '4px' }}><strong>Plan:</strong> {completeItem.plan_name || '—'}</div>
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#6d28d9', lineHeight: 1.4 }}>
+                  ℹ️ Once marked as <strong>Completed</strong>, this member's tenure will conclude and they will <strong>no longer receive new campaign installment dues</strong> for this plan.
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Completion Notes (Optional)</label>
+                <textarea
+                  value={completeNotes}
+                  onChange={e => setCompleteNotes(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%', resize: 'none', fontFamily: 'inherit', borderRadius: '12px' }}
+                  placeholder="E.g., All tenure contributions finished, service discharged..."
+                  rows={3}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setCompleteItem(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={completing} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700', background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#fff' }}>
+                  {completing ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Completed</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

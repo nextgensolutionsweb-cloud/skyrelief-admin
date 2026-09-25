@@ -99,6 +99,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState('JOINING_FEE');
   const [exportStatuses, setExportStatuses] = useState(['PENDING']);
+  const [exportPlanId, setExportPlanId] = useState('ALL');
 
   // Tabs & Summary
   const [activeSection, setActiveSection] = useState('Members'); // 'Members' or 'Wallet'
@@ -398,7 +399,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const fetchPendingCollections = async () => {
     setLoadingWallet(true);
     try {
-      const res = await apiRequest(`/api/agent/pending-collections?agent_id=${agentId}&page=${pendingPage}&limit=10`);
+      const filterParam = walletTab === 'Pending Slips' ? 'pending_slips' : (walletTab === 'Pending Joining Fees' ? 'pending_joining' : '');
+      const res = await apiRequest(`/api/agent/pending-collections?agent_id=${agentId}${filterParam ? `&filter=${filterParam}` : ''}&page=${pendingPage}&limit=10`);
       if (res.s === 1 && res.r) {
         setPendingCollections(res.r);
         setPendingMeta(res.meta);
@@ -1887,10 +1889,10 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 </tr>
               </thead>
               <tbody>
-                {pendingCollections.filter(d => d.type === 'JOINING_FEE' && (d.status === 0 || d.status === '0')).length === 0 ? (
+                {pendingCollections.length === 0 ? (
                   <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No pending joining fees found.</td></tr>
                 ) : (
-                  pendingCollections.filter(d => d.type === 'JOINING_FEE' && (d.status === 0 || d.status === '0')).map((due, idx) => (
+                  pendingCollections.map((due, idx) => (
                     <tr key={`fee-${due.due_id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{due.member_name}</div>
@@ -1935,10 +1937,10 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 </tr>
               </thead>
               <tbody>
-                {pendingCollections.filter(d => d.type === 'INSTALLMENT' && (d.status === 0 || d.status === '0')).length === 0 ? (
+                {pendingCollections.length === 0 ? (
                   <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No pending slips found.</td></tr>
                 ) : (
-                  pendingCollections.filter(d => d.type === 'INSTALLMENT' && (d.status === 0 || d.status === '0')).map((due, idx) => (
+                  pendingCollections.map((due, idx) => (
                     <tr key={`slip-${due.due_id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{due.member_name}</div>
@@ -2373,63 +2375,44 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   </label>
                 </div>
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Insurance Plan</label>
+                <select
+                  value={exportPlanId}
+                  onChange={e => setExportPlanId(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', background: '#f8fafc', color: '#0f172a', fontWeight: '600' }}
+                >
+                  <option value="ALL">All Insurance Plans</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
               
               <div>
-              {exportType === 'SLIP' ? (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Status (Select One)</label>
-                  <div style={{ display: 'flex', gap: '15px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
-                      <input 
-                        type="radio" 
-                        name="exportStatusRadio"
-                        checked={exportStatuses.includes('PENDING')} 
-                        onChange={() => setExportStatuses(['PENDING'])} 
-                      />
-                      Pending
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
-                      <input 
-                        type="radio" 
-                        name="exportStatusRadio"
-                        checked={exportStatuses.includes('COLLECTED')} 
-                        onChange={() => setExportStatuses(['COLLECTED'])} 
-                      />
-                      Collected (Paid)
-                    </label>
-                  </div>
-                  {exportStatuses.length === 0 && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block', fontWeight: '500' }}>Please select a status.</span>}
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Status (Select One)</label>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                    <input 
+                      type="radio" 
+                      name="exportStatusRadio"
+                      checked={exportStatuses.includes('PENDING')} 
+                      onChange={() => setExportStatuses(['PENDING'])} 
+                    />
+                    Pending
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                    <input 
+                      type="radio" 
+                      name="exportStatusRadio"
+                      checked={exportStatuses.includes('COLLECTED')} 
+                      onChange={() => setExportStatuses(['COLLECTED'])} 
+                    />
+                    Collected (Paid)
+                  </label>
                 </div>
-              ) : (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>Status (Multi-select)</label>
-                  <div style={{ display: 'flex', gap: '15px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={exportStatuses.includes('PENDING')} 
-                        onChange={e => {
-                          if (e.target.checked) setExportStatuses([...exportStatuses, 'PENDING']);
-                          else setExportStatuses(exportStatuses.filter(s => s !== 'PENDING'));
-                        }} 
-                      />
-                      Pending
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={exportStatuses.includes('COLLECTED')} 
-                        onChange={e => {
-                          if (e.target.checked) setExportStatuses([...exportStatuses, 'COLLECTED']);
-                          else setExportStatuses(exportStatuses.filter(s => s !== 'COLLECTED'));
-                        }} 
-                      />
-                      Collected (Paid)
-                    </label>
-                  </div>
-                  {exportStatuses.length === 0 && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block', fontWeight: '500' }}>Please select at least one status.</span>}
-                </div>
-              )}
+                {exportStatuses.length === 0 && <span style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '6px', display: 'block', fontWeight: '500' }}>Please select a status.</span>}
               </div>
             </div>
 
@@ -2438,13 +2421,21 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               <button 
                 type="button" 
                 className="btn-primary" 
-                style={{ flex: 1, padding: '10px', background: exportStatuses.length === 0 ? '#cbd5e1' : '#0ea5e9', cursor: exportStatuses.length === 0 ? 'not-allowed' : 'pointer', border: 'none' }}
+                style={{ 
+                  flex: 1, 
+                  padding: '10px', 
+                  background: exportStatuses.length === 0 ? '#cbd5e1' : '#0ea5e9', 
+                  cursor: exportStatuses.length === 0 ? 'not-allowed' : 'pointer', 
+                  border: 'none' 
+                }}
                 disabled={exportStatuses.length === 0}
                 onClick={() => {
                   const apikey = localStorage.getItem('sky_apikey') || '';
                   const token = localStorage.getItem('sky_token') || '';
                   const statusQuery = exportStatuses.join(',');
-                  window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/agent/generate-agent-report-pdf/${agentId}?type=${exportType}&status=${statusQuery}&apikey=${apikey}&token=${token}`, '_blank');
+                  const planQuery = exportPlanId ? `&plan_id=${exportPlanId}` : '';
+                  const statusParam = `&status=${statusQuery}`;
+                  window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/agent/generate-agent-report-pdf/${agentId}?type=${exportType}${statusParam}${planQuery}&apikey=${apikey}&token=${token}`, '_blank');
                   setShowExportModal(false);
                 }}
               >

@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Users, Calculator, CheckSquare, Square, Info, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Users, Calculator, CheckSquare, Square, Info, Plus, Trash2, CheckCircle } from 'lucide-react';
 import { apiRequest, showToast, formatCurrency } from '@/lib/api';
 
 export default function CreateCampaignPage() {
@@ -621,7 +621,14 @@ export default function CreateCampaignPage() {
                                   <tr key={idx} style={{ borderBottom: idx < rulesList.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
                                     <td style={{ padding: '8px 10px', fontWeight: '600', color: '#0f172a' }}>{getAgeRangeStr(item)}</td>
                                     <td style={{ padding: '8px 10px', textAlign: 'right', color: '#334155' }}>{formatCurrency(item.base_amount || getAmountPerMember(item))}</td>
-                                    <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>{item.married_count || preview.selected_married_count || '-'}</td>
+                                    <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>
+                                      <div>{item.married_count || preview.selected_married_count || '-'}</div>
+                                      {item.deduplicated_members && item.deduplicated_members.length > 0 && (
+                                        <div style={{ fontSize: '0.62rem', color: '#16a34a', fontWeight: '700', lineHeight: 1.2, marginTop: '2px' }}>
+                                          ({item.deduplicated_members.length} event member: {item.deduplicated_members[0].applicable_count})
+                                        </div>
+                                      )}
+                                    </td>
                                     <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#0f172a' }}>{getMemberCount(item)}</td>
                                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#1d4ed8' }}>{formatCurrency(getTotalAmount(item))}</td>
                                   </tr>
@@ -644,6 +651,34 @@ export default function CreateCampaignPage() {
                         );
                       }
                     })()}
+
+                    {/* Dedicated Event Members Deduplication Note */}
+                    {preview.event_members_summary && preview.event_members_summary.length > 0 && (
+                      <div style={{ marginTop: '16px', padding: '12px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#166534', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <CheckCircle size={14} color="#16a34a" />
+                          Event Members Deduplication (Khud ki kit excluded):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {preview.event_members_summary.map((em, idx) => (
+                            <div key={idx} style={{ fontSize: '0.75rem', color: '#14532d', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #dcfce7' }}>
+                              <div>
+                                <span style={{ fontWeight: '700' }}>{em.member_name}</span>{' '}
+                                <span style={{ color: '#64748b' }}>({em.member_code})</span>
+                              </div>
+                              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: '800', color: '#15803d' }}>
+                                  {em.married_count} Kit ({formatCurrency(em.amount)})
+                                </span>
+                                <span style={{ fontSize: '0.66rem', color: '#059669', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', fontWeight: '600' }}>
+                                  Khud ka 1 event excluded ✓
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -19,12 +19,24 @@ export default function MarriageFormPage() {
   const searchParams = useSearchParams();
   const marriageId = searchParams.get('id');
   const isEditMode = !!marriageId;
+  const paramPlanId = searchParams.get('plan_id');
+  const paramType = searchParams.get('type');
 
   const [form, setForm] = useState(emptyForm);
   const [plans, setPlans] = useState([]);
 
+  // Filter helper to determine death plans
+  const isDeathPlanHelper = (p) => p && (Number(p.plan_type) === 2 || String(p.name).toLowerCase().includes('सुरक्षा') || String(p.name).toLowerCase().includes('suraksha') || String(p.name).toLowerCase().includes('death'));
+
   const selectedPlan = plans.find(p => String(p.id) === String(form.plan_id));
-  const isDeathPlan = selectedPlan && (Number(selectedPlan.plan_type) === 2 || String(selectedPlan.name).toLowerCase().includes('सुरक्षा') || String(selectedPlan.name).toLowerCase().includes('suraksha'));
+  const isDeathMode = paramType === 'death' || isDeathPlanHelper(selectedPlan);
+
+  // Grouped active plans
+  const activePlans = plans.filter(p => p.status !== -1 && String(p.status) !== '-1');
+  const marriagePlans = activePlans.filter(p => !isDeathPlanHelper(p));
+  const deathPlans = activePlans.filter(p => isDeathPlanHelper(p));
+  const selectablePlans = paramType === 'death' ? deathPlans : (paramType === 'marriage' ? marriagePlans : activePlans);
+
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -79,7 +91,7 @@ export default function MarriageFormPage() {
           }
 
           const thisPlan = plans.find(p => String(p.id) === String(planId));
-          const isDeath = thisPlan && (Number(thisPlan.plan_type) === 2 || String(thisPlan.name).toLowerCase().includes('सुरक्षा') || String(thisPlan.name).toLowerCase().includes('suraksha'));
+          const isDeath = isDeathPlanHelper(thisPlan);
 
           if (isDeath) {
             return true;
@@ -119,27 +131,31 @@ export default function MarriageFormPage() {
     }
   };
 
-  // Fetch Marriage Details for Edit
+  // Fetch Marriage / Death Details for Edit
   const fetchMarriageDetails = async () => {
     setLoading(true);
     try {
-      const res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
+      let res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
+      if (res.s !== 1 || !res.r) {
+        res = await apiRequest(`/api/death/get?id=${marriageId}`);
+      }
       if (res.s === 1 && res.r) {
         const details = res.r;
         const planId = String(details.plan_id || details.insurance_plan?.id || '');
         const savedMemberId = String(details.member_id || details.member?.id || '');
+        const rawDate = details.marriage_date || details.death_date || details.date || '';
 
         setForm({
           plan_id: planId,
           member_id: savedMemberId,
-          marriage_date: details.marriage_date ? details.marriage_date.split('T')[0] : (details.date ? details.date.split('T')[0] : ''),
+          marriage_date: rawDate ? rawDate.split('T')[0] : '',
           notes: details.notes || '',
           amount_given: details.amount_given || '',
         });
 
-        const cardPath = details.invitation_card || details.invitation_card_url || details.card || '';
+        const cardPath = details.photo_url || details.photo || details.invitation_card || details.invitation_card_url || details.card || '';
         if (cardPath) {
-          setExistingCard(details.photo_url || cardPath);
+          setExistingCard(cardPath);
         }
 
         // Auto load plan members and select saved member
@@ -147,11 +163,11 @@ export default function MarriageFormPage() {
           await fetchMembersForPlan(planId, savedMemberId);
         }
       } else {
-        showToast(res.m || 'Failed to fetch marriage details', 'error');
+        showToast(res.m || 'Failed to fetch case details', 'error');
       }
     } catch (err) {
-      console.error('Error fetching marriage details:', err);
-      showToast('Failed to load marriage details.', 'error');
+      console.error('Error fetching details:', err);
+      showToast('Failed to load case details.', 'error');
     } finally {
       setLoading(false);
     }
@@ -160,6 +176,27 @@ export default function MarriageFormPage() {
   useEffect(() => {
     fetchPlans();
   }, []);
+
+  useEffect(() => {
+    if (!isEditMode && plans.length > 0) {
+      if (paramPlanId) {
+        const found = plans.find(p => String(p.id) === String(paramPlanId));
+        if (found) {
+          handlePlanChange(String(found.id));
+        }
+      } else if (paramType === 'death') {
+        const deathPlan = plans.find(p => isDeathPlanHelper(p));
+        if (deathPlan) {
+          handlePlanChange(String(deathPlan.id));
+        }
+      } else if (paramType === 'marriage') {
+        const marriagePlan = plans.find(p => !isDeathPlanHelper(p));
+        if (marriagePlan) {
+          handlePlanChange(String(marriagePlan.id));
+        }
+      }
+    }
+  }, [paramPlanId, paramType, plans.length, isEditMode]);
 
   useEffect(() => {
     if (isEditMode) {
@@ -239,7 +276,7 @@ export default function MarriageFormPage() {
       return false;
     }
     if (!form.marriage_date) {
-      showToast('Marriage Date is required.', 'error');
+      showToast(isDeathMode ? 'Death Date is required.' : 'Marriage Date is required.', 'error');
       return false;
     }
     return true;
@@ -249,7 +286,7 @@ export default function MarriageFormPage() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (isDeathPlan && !form.amount_given) {
+    if (isDeathMode && !form.amount_given) {
       showToast('Amount Given is required for Death events.', 'error');
       return;
     }
@@ -262,16 +299,16 @@ export default function MarriageFormPage() {
     formData.append('marriage_date', form.marriage_date);
     formData.append('notes', form.notes);
 
-    if (isDeathPlan && form.amount_given) {
+    if (isDeathMode && form.amount_given) {
       formData.append('amount_given', form.amount_given);
     }
 
     if (cardFile) {
-      formData.append(isDeathPlan ? 'photo' : 'invitation_card', cardFile);
+      formData.append(isDeathMode ? 'photo' : 'invitation_card', cardFile);
     }
 
-    const endpointUpdate = isDeathPlan ? '/api/death/update' : '/api/marriage/update';
-    const endpointCreate = isDeathPlan ? '/api/death/create' : '/api/marriage/create';
+    const endpointUpdate = isDeathMode ? '/api/death/update' : '/api/marriage/update';
+    const endpointCreate = isDeathMode ? '/api/death/create' : '/api/marriage/create';
 
     try {
       let res;
@@ -290,15 +327,20 @@ export default function MarriageFormPage() {
 
       if (res.s === 1) {
         showToast(
-          isEditMode ? 'Marriage record updated successfully!' : 'Marriage record created successfully!',
+          isEditMode 
+            ? (isDeathMode ? 'Death record updated successfully!' : 'Marriage record updated successfully!')
+            : (isDeathMode ? 'Death record created successfully!' : 'Marriage record created successfully!'),
           'success'
         );
-        router.push(isEditMode ? `/marriages/${marriageId}` : '/marriages');
+        if (form.plan_id && typeof window !== 'undefined') {
+          localStorage.setItem('sky_selected_program_plan', String(form.plan_id));
+        }
+        router.push(isEditMode ? `/marriages/${marriageId}${isDeathMode ? '?type=death' : ''}` : `/marriages?plan_id=${form.plan_id || ''}`);
       } else {
-        showToast(res.m || 'Failed to save marriage record.', 'error');
+        showToast(res.m || (isDeathMode ? 'Failed to save death record.' : 'Failed to save marriage record.'), 'error');
       }
     } catch (err) {
-      console.error('Error saving marriage:', err);
+      console.error('Error saving record:', err);
       // Fallback try JSON format if multipart isn't fully supported
       try {
         const payload = {
@@ -308,7 +350,7 @@ export default function MarriageFormPage() {
           marriage_date: form.marriage_date,
           notes: form.notes
         };
-        if (isDeathPlan && form.amount_given) {
+        if (isDeathMode && form.amount_given) {
           payload.amount_given = form.amount_given;
         }
         if (isEditMode) payload.id = marriageId;
@@ -319,8 +361,11 @@ export default function MarriageFormPage() {
         });
 
         if (jsonRes.s === 1) {
-          showToast('Saved successfully (Text data only)!', 'success');
-          router.push(isEditMode ? `/marriages/${marriageId}` : '/marriages');
+          showToast(isDeathMode ? 'Death record saved successfully!' : 'Saved successfully (Text data only)!', 'success');
+          if (form.plan_id && typeof window !== 'undefined') {
+            localStorage.setItem('sky_selected_program_plan', String(form.plan_id));
+          }
+          router.push(isEditMode ? `/marriages/${marriageId}${isDeathMode ? '?type=death' : ''}` : `/marriages?plan_id=${form.plan_id || ''}`);
         } else {
           showToast(jsonRes.m || 'An error occurred while saving.', 'error');
         }
@@ -363,10 +408,14 @@ export default function MarriageFormPage() {
           </button>
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', margin: 0 }}>
-              {isEditMode ? 'Edit Marriage / Death Event' : 'Register New Marriage / Event'}
+              {isEditMode 
+                ? (isDeathMode ? 'Edit Death Event Record' : 'Edit Marriage Record') 
+                : (isDeathMode ? 'Register New Death Case' : 'Register New Marriage Case')}
             </h1>
             <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '2px', margin: 0 }}>
-              {isEditMode ? 'Update record details and attached documents' : 'Fill in the event details and attach optional invitation cards or photos'}
+              {isDeathMode 
+                ? 'Fill in death claim details, disbursement amount, and death certificate/photo' 
+                : 'Fill in the event details and attach optional invitation cards or photos'}
             </p>
           </div>
         </div>
@@ -381,14 +430,16 @@ export default function MarriageFormPage() {
             {/* Event & Member Info Card */}
             <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
-                  💍
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: isDeathMode ? '#fef3c7' : '#e0f2fe', color: isDeathMode ? '#d97706' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
+                  {isDeathMode ? '🛡️' : '💍'}
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                    Event & Member Information
+                    {isDeathMode ? 'Death Claim & Member Information' : 'Event & Member Information'}
                   </h2>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Select plan and registered active member</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {isDeathMode ? 'Select death assistance plan and registered member' : 'Select plan and registered active member'}
+                  </span>
                 </div>
               </div>
 
@@ -407,7 +458,7 @@ export default function MarriageFormPage() {
                     style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', color: '#0f172a', background: '#fff' }}
                   >
                     <option value="">Select Plan</option>
-                    {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {selectablePlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
 
@@ -504,10 +555,10 @@ export default function MarriageFormPage() {
                 </div>
 
                 {/* Event Date & Amount (if applicable) */}
-                <div style={{ display: 'grid', gridTemplateColumns: isDeathPlan ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isDeathMode ? '1fr 1fr' : '1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                      {isDeathPlan ? 'Death Date' : 'Marriage Date'} <span style={{ color: '#ef4444' }}>*</span>
+                      {isDeathMode ? 'Death Date' : 'Marriage Date'} <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="date"
@@ -519,7 +570,7 @@ export default function MarriageFormPage() {
                     />
                   </div>
 
-                  {isDeathPlan && (
+                  {isDeathMode && (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                         Amount Given (₹) <span style={{ color: '#ef4444' }}>*</span>
@@ -530,7 +581,7 @@ export default function MarriageFormPage() {
                         value={form.amount_given}
                         onChange={e => handleInputChange('amount_given', e.target.value)}
                         className="premium-input"
-                        placeholder="e.g. 50000"
+                        placeholder="e.g. 10000"
                         style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
                       />
                     </div>
@@ -563,23 +614,25 @@ export default function MarriageFormPage() {
             {/* Documents Card */}
             <div className="card" style={{ padding: '24px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
-                  📁
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: isDeathMode ? '#fef3c7' : '#e0f2fe', color: isDeathMode ? '#d97706' : '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '1rem' }}>
+                  {isDeathMode ? '🛡️' : '📁'}
                 </div>
                 <div>
                   <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                    Document Attachment
+                    {isDeathMode ? 'Death Certificate / Photo' : 'Document Attachment'}
                   </h2>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Invitation card or proof document</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    {isDeathMode ? 'Death certificate or proof photo' : 'Invitation card or proof document'}
+                  </span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                 <div style={{ width: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', border: '2px dashed #cbd5e1', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                   {cardPreview ? (
-                    <img src={cardPreview} alt="Card Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={cardPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : existingCard ? (
-                    <img src={getImageUrl(existingCard)} alt="Invitation Card" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={getImageUrl(existingCard)} alt="Uploaded Proof" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   ) : (
                     <div style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
                       <FileText size={36} style={{ margin: '0 auto 8px', color: '#94a3b8' }} />
@@ -616,7 +669,7 @@ export default function MarriageFormPage() {
                       color: '#334155'
                     }}
                   >
-                    <Upload size={16} /> Choose Document File
+                    <Upload size={16} /> {isDeathMode ? 'Choose Proof / Photo' : 'Choose Document File'}
                   </label>
                   <span style={{ display: 'block', fontSize: '0.74rem', color: '#94a3b8', marginTop: '8px', lineHeight: '1.4' }}>
                     {cardFile ? `Selected: ${cardFile.name}` : existingCard ? 'File currently uploaded. Click above to replace.' : 'Optional attachment'}
@@ -641,9 +694,15 @@ export default function MarriageFormPage() {
                   <strong style={{ color: '#0f172a' }}>{form.member_id ? 'Selected' : 'Not selected'}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Date:</span>
+                  <span>{isDeathMode ? 'Death Date:' : 'Marriage Date:'}</span>
                   <strong style={{ color: '#0f172a' }}>{form.marriage_date || 'Not set'}</strong>
                 </div>
+                {isDeathMode && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Amount Given:</span>
+                    <strong style={{ color: '#0f172a' }}>{form.amount_given ? `₹${Number(form.amount_given).toLocaleString('en-IN')}` : 'Not set'}</strong>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -661,7 +720,8 @@ export default function MarriageFormPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    background: '#0284c7',
+                    background: isDeathMode ? '#f59e0b' : '#0284c7',
+                    borderColor: isDeathMode ? '#f59e0b' : undefined,
                     color: '#fff',
                     border: 'none',
                     cursor: saving ? 'not-allowed' : 'pointer'
@@ -670,10 +730,14 @@ export default function MarriageFormPage() {
                   {saving ? (
                     <>
                       <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span>Saving Event...</span>
+                      <span>{isDeathMode ? 'Saving Death Record...' : 'Saving Event...'}</span>
                     </>
                   ) : (
-                    <span>{isEditMode ? 'Update Event Record' : 'Register Event'}</span>
+                    <span>
+                      {isEditMode 
+                        ? (isDeathMode ? 'Update Death Record' : 'Update Marriage Record') 
+                        : (isDeathMode ? 'Register Death Case' : 'Register Marriage Case')}
+                    </span>
                   )}
                 </button>
 

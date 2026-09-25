@@ -80,6 +80,12 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const [memberDues, setMemberDues] = useState([]);
   const [duesFilter, setDuesFilter] = useState('All');
 
+  // Mark As Paid Modal State
+  const [payingDue, setPayingDue] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payNotes, setPayNotes] = useState('');
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+
   // Zoom lightbox state
   const [zoomImage, setZoomImage] = useState(null);
   const [zoomTitle, setZoomTitle] = useState('');
@@ -118,6 +124,46 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const [activePlans, setActivePlans] = useState([]);
   const [memberInsurances, setMemberInsurances] = useState([]);
   const [confirmRevoke, setConfirmRevoke] = useState(null);
+
+  // Complete Tenure Modal States
+  const [completeItem, setCompleteItem] = useState(null);
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [completing, setCompleting] = useState(false);
+
+  const openCompleteModal = (ins) => {
+    setCompleteItem(ins);
+    setCompleteNotes('');
+  };
+
+  const handleConfirmComplete = async (e) => {
+    e.preventDefault();
+    if (!completeItem) return;
+    setCompleting(true);
+    try {
+      const res = await apiRequest('/api/member/update-insurance-status', {
+        method: 'POST',
+        body: JSON.stringify({
+          member_insurance_id: completeItem.insurance_id || completeItem.id,
+          member_id: memberId,
+          plan_id: completeItem.plan_id,
+          status: 4,
+          notes: completeNotes
+        })
+      });
+      if (res.s === 1) {
+        showToast(res.m || 'Plan marked as Completed successfully.', 'success');
+        setCompleteItem(null);
+        loadData();
+      } else {
+        showToast(res.m || 'Failed to complete plan.', 'error');
+      }
+    } catch (err) {
+      console.error('Error completing plan:', err);
+      showToast('An error occurred while marking completed.', 'error');
+    } finally {
+      setCompleting(false);
+    }
+  };
 
   const handleRevokeInsurance = async () => {
     if (!confirmRevoke) return;
@@ -310,6 +356,40 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     window.open(url, "_blank");
   };
 
+  const handleOpenMarkPaid = (due) => {
+    setPayingDue(due);
+    setPayAmount(String(due.amount || due.total_amount || due.total_payable_amount || ''));
+    setPayNotes('Marked paid via Cash by Admin');
+  };
+
+  const handleConfirmMarkPaid = async (e) => {
+    e.preventDefault();
+    if (!payingDue) return;
+    setSubmittingPayment(true);
+    try {
+      const res = await apiRequest('/api/payment/mark-cash-paid', {
+        method: 'POST',
+        body: JSON.stringify({
+          due_id: payingDue.due_id || payingDue.id,
+          amount: Number(payAmount),
+          notes: payNotes
+        })
+      });
+      if (res.s === 1) {
+        showToast('Payment marked as paid successfully!', 'success');
+        setPayingDue(null);
+        loadData();
+      } else {
+        showToast(res.m || 'Failed to mark as paid', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error marking payment as paid', 'error');
+    } finally {
+      setSubmittingPayment(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [memberId]);
@@ -466,13 +546,24 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const fullName = member.full_name || (firstName !== '—' ? `${firstName} ${lastName !== '—' ? lastName : ''}` : '') || 'Member';
   const initials = `${firstName !== '—' && firstName ? firstName[0] : ''}${lastName !== '—' && lastName ? lastName[0] : ''}`.toUpperCase() || 'MB';
   
-  const isRejected = String(member.insurance_status) === '2';
-  const isSuspended = member.account_status === 2 && !isRejected;
-  const displayStatus = isRejected ? 'Rejected' : isSuspended ? 'Suspended' : (member.insurance_status_text || 'Pending');
+  const insStatus = Number(member.insurance_status);
+  const accStatus = Number(member.account_status);
+  const isCompleted = insStatus === 4;
+  const isMarried = insStatus === 2;
+  const isDeceased = insStatus === 5;
+  const isSuspended = accStatus === 2 && !isCompleted && !isMarried && !isDeceased;
+  
+  const displayStatus = isCompleted ? 'Completed' :
+    isMarried ? 'Married' :
+    isDeceased ? 'Deceased' :
+    isSuspended ? 'Suspended' :
+    (member.insurance_status_text || 'Pending');
+    
   const statusClass = 
-    (isSuspended || isRejected) ? 'inactive' :
+    isSuspended ? 'inactive' :
     displayStatus === 'Active' ? 'active' : 
-    displayStatus === 'Married' ? 'active' : 
+    displayStatus.includes('Married') ? 'active' : 
+    displayStatus === 'Completed' ? 'completed' : 
     displayStatus === 'Removed' ? 'inactive' : 'pending';
 
   const getImageUrl = (path) => {
@@ -812,7 +903,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
         </div>
 
         {/* Quick KPI Strip at Bottom of Hero Card */}
-        <div style={{ 
+        {/* <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
           gap: '14px', 
@@ -867,7 +958,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               </span>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Main Responsive 2-Column Grid */}
@@ -1105,7 +1196,22 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {ins.insurance_status === 2 && (
+                      <button 
+                        onClick={() => openCompleteModal(ins)}
+                        className="btn-secondary"
+                        style={{ color: '#7e22ce', padding: '4px 10px', fontSize: '0.72rem', fontWeight: '700', border: '1px solid #ddd6fe', background: '#f5f3ff', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title="Mark Tenure as Completed (Stop Dues)"
+                      >
+                        <Award size={13} /> Complete
+                      </button>
+                    )}
+                    {ins.insurance_status === 4 && (
+                      <span style={{ padding: '4px 9px', background: '#f3e8ff', color: '#7e22ce', borderRadius: '6px', fontSize: '0.7rem', fontWeight: '800' }}>
+                        ● Completed
+                      </span>
+                    )}
                     <button 
                       onClick={() => openEditJoiningModal(ins)}
                       className="btn-secondary"
@@ -1130,8 +1236,15 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                   <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '700', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Plan Title</span>
                   <span style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', display: 'block', lineHeight: 1.3 }}>{ins.plan_name || '—'}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                    <span style={{ fontSize: '0.72rem', color: ins.insurance_status_text === 'Active' ? '#15803d' : '#991b1b', fontWeight: '750' }}>
-                      ● {ins.insurance_status_text || 'Active'}
+                    <span style={{ 
+                      fontSize: '0.72rem', 
+                      color: ins.insurance_status === 1 ? '#15803d' : 
+                             ins.insurance_status === 2 ? '#1d4ed8' : 
+                             ins.insurance_status === 4 ? '#7e22ce' : 
+                             ins.insurance_status === 5 ? '#991b1b' : '#64748b', 
+                      fontWeight: '750' 
+                    }}>
+                      ● {ins.insurance_status === 2 ? 'Married (Contributing)' : ins.insurance_status === 4 ? 'Completed' : (ins.insurance_status_text || 'Active')}
                     </span>
                     <span style={{ color: '#cbd5e1' }}>•</span>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: '600' }}>
@@ -1142,15 +1255,15 @@ export default function MemberProfilePage({ params: paramsPromise }) {
 
                 {/* Financial Ledger Progress Widget */}
                 <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '14px', border: '1px solid #bbf7d0', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+                  {/* <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#166534', fontWeight: '750', textTransform: 'uppercase' }}>Joining Fee Ledger</span>
                     <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '800' }}>{percentPaid}% Paid</span>
-                  </div>
+                  </div> */}
 
                   {/* Progress Bar */}
-                  <div style={{ width: '100%', height: '8px', background: '#dcfce7', borderRadius: '9999px', overflow: 'hidden', marginBottom: '12px' }}>
+                  {/* <div style={{ width: '100%', height: '8px', background: '#dcfce7', borderRadius: '9999px', overflow: 'hidden', marginBottom: '12px' }}>
                     <div style={{ width: `${percentPaid}%`, height: '100%', background: '#16a34a', borderRadius: '9999px', transition: 'width 0.5s ease' }} />
-                  </div>
+                  </div> */}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
                     <div style={{ background: '#ffffff', padding: '8px 4px', borderRadius: '8px', border: '1px solid #dcfce7' }}>
@@ -1377,14 +1490,16 @@ export default function MemberProfilePage({ params: paramsPromise }) {
 
         {/* 4 Financial Stat KPI Cards */}
         {(() => {
+          const getDueAmt = (d) => Number(d.amount ?? d.total_payable_amount ?? d.total_amount ?? 0);
+
           const totalPaid = memberDues.filter(d => Number(d.status) === 1);
           const totalPending = memberDues.filter(d => Number(d.status) === 0);
           const totalApprovalPending = memberDues.filter(d => Number(d.status) === 2);
 
-          const paidSum = totalPaid.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
-          const pendingSum = totalPending.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
-          const approvalSum = totalApprovalPending.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
-          const totalSum = memberDues.reduce((acc, curr) => acc + Number(curr.amount || curr.total_amount || 0), 0);
+          const paidSum = totalPaid.reduce((acc, curr) => acc + getDueAmt(curr), 0);
+          const pendingSum = totalPending.reduce((acc, curr) => acc + getDueAmt(curr), 0);
+          const approvalSum = totalApprovalPending.reduce((acc, curr) => acc + getDueAmt(curr), 0);
+          const totalSum = memberDues.reduce((acc, curr) => acc + getDueAmt(curr), 0);
 
           return (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -1440,41 +1555,66 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                     <th>Due Amount</th>
                     <th>Due Date</th>
                     <th>Payment Status</th>
-                    <th style={{ textAlign: 'right' }}>Slip / Receipt</th>
+                    <th style={{ textAlign: 'right' }}>Slip / Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDues.map((item, idx) => {
                     const st = Number(item.status);
+                    const dueDateVal = item.due_date || item.created_at;
+                    const isOverdue = st === 0 && Boolean(dueDateVal) && (() => {
+                      try {
+                        const d = new Date(dueDateVal);
+                        if (isNaN(d.getTime())) return false;
+                        d.setHours(23, 59, 59, 999);
+                        return d < new Date();
+                      } catch {
+                        return false;
+                      }
+                    })();
+
                     let badgeBg = '#fef9c3';
                     let badgeColor = '#854d0e';
                     let badgeText = 'Pending';
+                    let badgeBorder = '1px solid #fef08a';
 
                     if (st === 1) {
                       badgeBg = '#dcfce7';
                       badgeColor = '#15803d';
+                      badgeBorder = '1px solid #bbf7d0';
                       badgeText = 'Paid';
                     } else if (st === 2) {
                       badgeBg = '#dbeafe';
                       badgeColor = '#1e40af';
+                      badgeBorder = '1px solid #bfdbfe';
                       badgeText = 'Pending Request';
+                    } else if (isOverdue) {
+                      badgeBg = '#fee2e2';
+                      badgeColor = '#b91c1c';
+                      badgeBorder = '1px solid #fecdd3';
+                      badgeText = 'Overdue';
                     }
 
-                    const dueAmt = Number(item.amount || item.total_amount || 0);
+                    const dueAmt = Number(item.amount ?? item.total_payable_amount ?? item.total_amount ?? 0);
 
                     return (
-                      <tr key={item.due_id || item.id || idx}>
+                      <tr key={item.due_id || item.id || idx} style={{ background: isOverdue ? 'rgba(254, 242, 242, 0.3)' : undefined }}>
                         <td style={{ fontWeight: '750', color: '#0f172a' }}>
                           {item.campaign_title || item.campaign_name || item.title || `Campaign #${item.campaign_id || item.due_id}`}
                         </td>
                         <td style={{ color: '#475569', fontWeight: '600' }}>
                           {item.plan_name || item.insurance_name || '—'}
                         </td>
-                        <td style={{ fontWeight: '800', color: '#0f172a' }}>
+                        <td style={{ fontWeight: '800', color: isOverdue ? '#dc2626' : '#0f172a' }}>
                           ₹{dueAmt.toLocaleString('en-IN')}
                         </td>
-                        <td style={{ color: '#64748b' }}>
-                          {formatDate(item.due_date || item.created_at)}
+                        <td style={{ color: isOverdue ? '#dc2626' : '#64748b', fontWeight: isOverdue ? '750' : 'normal' }}>
+                          {formatDate(dueDateVal)}
+                          {isOverdue && (
+                            <span style={{ marginLeft: '6px', fontSize: '0.68rem', background: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>
+                              LATE
+                            </span>
+                          )}
                         </td>
                         <td>
                           <span style={{
@@ -1483,17 +1623,19 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                             borderRadius: '20px',
                             background: badgeBg,
                             color: badgeColor,
-                            fontWeight: '700',
+                            border: badgeBorder,
+                            fontWeight: '750',
                             fontSize: '0.75rem'
                           }}>
                             ● {badgeText}
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          {st === 1 ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             <button
                               onClick={() => handleViewSlip(item.due_id || item.id)}
                               className="btn-secondary"
+                              title={isOverdue ? "Overdue Payment Slip" : "View / Download Payment Slip"}
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '8px',
@@ -1502,17 +1644,40 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '6px',
-                                background: '#eff6ff',
-                                color: '#2563eb',
-                                border: '1px solid #bfdbfe'
+                                background: isOverdue ? '#fff1f2' : '#eff6ff',
+                                color: isOverdue ? '#e11d48' : '#2563eb',
+                                border: isOverdue ? '1.5px solid #fecdd3' : '1px solid #bfdbfe',
+                                boxShadow: isOverdue ? '0 1px 4px rgba(225, 29, 72, 0.12)' : 'none'
                               }}
                             >
-                              <FileText size={14} />
-                              View Slip
+                              <FileText size={14} color={isOverdue ? '#e11d48' : '#2563eb'} />
+                              <span>Slip</span>
                             </button>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>—</span>
-                          )}
+
+                            {st === 0 && (
+                              <button
+                                onClick={() => handleOpenMarkPaid(item)}
+                                title="Mark this due as Paid"
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '700',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: isOverdue ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  boxShadow: isOverdue ? '0 2px 6px rgba(239, 68, 68, 0.3)' : '0 2px 6px rgba(16, 185, 129, 0.25)'
+                                }}
+                              >
+                                <CheckCircle2 size={14} />
+                                <span>Mark Paid</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1811,6 +1976,141 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                 <button type="button" onClick={() => setShowEditJoiningModal(false)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.85rem' }}>Cancel</button>
                 <button type="submit" disabled={editingJoining} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '9999px', fontSize: '0.85rem' }}>
                   {editingJoining ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Plan Modal */}
+      {completeItem && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setCompleteItem(null)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '460px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              🏆 Mark Plan Tenure as Completed
+            </h2>
+            
+            <form onSubmit={handleConfirmComplete} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#f5f3ff', padding: '14px', borderRadius: '12px', border: '1px solid #ddd6fe', fontSize: '0.82rem', color: '#4c1d95' }}>
+                <div><strong>Member:</strong> {fullName} ({member.member_code})</div>
+                <div style={{ marginTop: '4px' }}><strong>Plan:</strong> {completeItem.plan_name || '—'}</div>
+                <div style={{ marginTop: '6px', fontSize: '0.78rem', color: '#6d28d9', lineHeight: 1.4 }}>
+                  ℹ️ Once marked as <strong>Completed</strong>, this member's tenure for this plan will conclude and they will <strong>no longer receive new campaign installment dues</strong>.
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>Completion Notes (Optional)</label>
+                <textarea
+                  value={completeNotes}
+                  onChange={e => setCompleteNotes(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%', resize: 'none', fontFamily: 'inherit', borderRadius: '12px' }}
+                  placeholder="E.g., All tenure contributions finished, service discharged..."
+                  rows={3}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setCompleteItem(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={completing} className="btn-primary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700', background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#fff' }}>
+                  {completing ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span>Completing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Completed</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mark Cash Paid Modal */}
+      {payingDue && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setPayingDue(null)} />
+          <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <CheckCircle2 size={22} style={{ color: '#10b981' }} />
+              <span>Mark Payment as Paid</span>
+            </h2>
+
+            <form onSubmit={handleConfirmMarkPaid} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ background: '#ecfdf5', padding: '14px', borderRadius: '12px', border: '1px solid #a7f3d0', fontSize: '0.82rem', color: '#065f46' }}>
+                <div><strong>Member:</strong> {fullName} ({member.member_code})</div>
+                <div style={{ marginTop: '4px' }}><strong>Campaign:</strong> {payingDue.campaign_title || payingDue.campaign_name || payingDue.title || `Campaign #${payingDue.campaign_id || payingDue.due_id}`}</div>
+                <div style={{ marginTop: '4px' }}><strong>Plan:</strong> {payingDue.plan_name || payingDue.insurance_name || '—'}</div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  Amount Received (₹) *
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={payAmount}
+                  onChange={e => setPayAmount(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%', borderRadius: '12px', fontWeight: '750', fontSize: '1rem', color: '#0f172a' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                  Payment Notes (Optional)
+                </label>
+                <textarea
+                  value={payNotes}
+                  onChange={e => setPayNotes(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%', resize: 'none', fontFamily: 'inherit', borderRadius: '12px', fontSize: '0.85rem' }}
+                  rows={2}
+                  placeholder="Payment remarks or reference..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setPayingDue(null)} className="btn-secondary" style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600' }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingPayment}
+                  className="btn-primary"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: '750',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: '#fff',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  {submittingPayment ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Paid</span>
+                  )}
                 </button>
               </div>
             </form>

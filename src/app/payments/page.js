@@ -209,13 +209,22 @@ export default function PaymentCampaignsListPage() {
   const formatDate = (dateStr) => {
     if (!dateStr) return "-";
     try {
+      const clean = String(dateStr).split('T')[0];
+      const parts = clean.split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const day = parts[2].padStart(2, '0');
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parts[0];
+        if (monthIdx >= 0 && monthIdx < 12) {
+          return `${day} ${months[monthIdx]} ${year}`;
+        }
+      }
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return "-";
-      const day = String(d.getDate()).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const month = months[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day} ${month} ${year}`;
+      return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
     } catch (e) {
       return "-";
     }
