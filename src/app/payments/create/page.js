@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, Users, Calculator, CheckSquare, Square, Info, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Users, Calculator, CheckSquare, Square, Info, Plus, Trash2, CheckCircle, ChevronDown, ChevronUp, AlertCircle, ShieldAlert } from 'lucide-react';
 import { apiRequest, showToast, formatCurrency } from '@/lib/api';
 
 export default function CreateCampaignPage() {
@@ -28,6 +28,7 @@ export default function CreateCampaignPage() {
   const [preview, setPreview] = useState(null);
   const [previewMissingRules, setPreviewMissingRules] = useState([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [showExclusionsDetail, setShowExclusionsDetail] = useState(false);
 
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -567,7 +568,7 @@ export default function CreateCampaignPage() {
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>Selected Members:</span>
+                      <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>Selected Events / Members:</span>
                       <span style={{ fontSize: '0.95rem', color: '#8b5cf6', fontWeight: '800' }}>{preview.selected_married_count}</span>
                     </div>
 
@@ -583,15 +584,137 @@ export default function CreateCampaignPage() {
                       <span style={{ fontSize: '0.95rem', color: '#0ea5e9', fontWeight: '700' }}>{preview.payable_member_count}</span>
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>Eligible Member-Event Pairs:</span>
+                      <span style={{ fontSize: '0.95rem', color: '#059669', fontWeight: '800', background: '#ecfdf5', padding: '1px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                        {preview.total_eligible_pairs ?? '-'}
+                      </span>
+                    </div>
+
                     <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }}></div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: '700' }}>Total Collectable:</span>
-                      <span style={{ fontSize: '1.2rem', color: '#15803d', fontWeight: '900' }}>
+                      <span style={{ fontSize: '1.25rem', color: '#15803d', fontWeight: '900' }}>
                         {formatCurrency(preview.total_collectable_amount || preview.totalCollectableAmount)}
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Exclusions Rules Breakdown Section (Rule 9) */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '0.78rem', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ShieldAlert size={14} color="#f59e0b" />
+                      Exclusion Rules Breakdown
+                    </h3>
+                    <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#b45309', padding: '2px 8px', borderRadius: '12px', fontWeight: '700' }}>
+                      {preview.exclusions_summary?.total_excluded_pairs || 0} Excluded Pairs
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '600' }}>Self-Event (Own Marriage)</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
+                        {preview.exclusions_summary?.self_event_exclusions || 0}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Excluded from own event</div>
+                    </div>
+
+                    <div style={{ padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '600' }}>Joined After Event</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
+                        {preview.exclusions_summary?.joined_after_exclusions || 0}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Join date &gt; event date</div>
+                    </div>
+
+                    <div style={{ padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '600' }}>Completed Members</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
+                        {preview.exclusions_summary?.completed_member_exclusions || 0}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Obligation completed</div>
+                    </div>
+
+                    <div style={{ padding: '8px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '600' }}>Duplicate / Billed</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>
+                        {preview.exclusions_summary?.duplicate_already_billed_exclusions || 0}
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#94a3b8' }}>Already billed</div>
+                    </div>
+                  </div>
+
+                  {preview.excluded_details && preview.excluded_details.length > 0 && (
+                    <div style={{ marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowExclusionsDetail(!showExclusionsDetail)}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: '700',
+                          color: '#475569',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <span>View Excluded Cases ({preview.excluded_details.length})</span>
+                        {showExclusionsDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+
+                      {showExclusionsDetail && (
+                        <div style={{ marginTop: '8px', maxHeight: '180px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem' }}>
+                            <thead>
+                              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '700', color: '#475569' }}>Member</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '700', color: '#475569' }}>Event</th>
+                                <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: '700', color: '#475569' }}>Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {preview.excluded_details.map((ex, idx) => (
+                                <tr key={idx} style={{ borderBottom: idx < preview.excluded_details.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                                  <td style={{ padding: '6px 8px', color: '#0f172a', fontWeight: '600' }}>
+                                    <div>{ex.member_name}</div>
+                                    <div style={{ fontSize: '0.62rem', color: '#64748b' }}>{ex.member_code}</div>
+                                  </td>
+                                  <td style={{ padding: '6px 8px', color: '#475569' }}>
+                                    <div>{ex.event_name || '-'}</div>
+                                    <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>{ex.event_date || ''}</div>
+                                  </td>
+                                  <td style={{ padding: '6px 8px' }}>
+                                    <span style={{
+                                      display: 'inline-block',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.64rem',
+                                      fontWeight: '600',
+                                      background: ex.reason.includes('Self') ? '#eff6ff' : ex.reason.includes('Joined') ? '#fff7ed' : '#fef2f2',
+                                      color: ex.reason.includes('Self') ? '#1d4ed8' : ex.reason.includes('Joined') ? '#c2410c' : '#b91c1c',
+                                      border: `1px solid ${ex.reason.includes('Self') ? '#bfdbfe' : ex.reason.includes('Joined') ? '#ffedd5' : '#fecaca'}`
+                                    }}>
+                                      {ex.reason}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Age-wise Breakdown Section */}
@@ -611,7 +734,7 @@ export default function CreateCampaignPage() {
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                                   <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: '700', color: '#475569' }}>Age Range</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#475569' }}>Base Amt</th>
-                                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>× Count</th>
+                                  <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>× Pairs</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#475569' }}>Members</th>
                                   <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#475569' }}>Total</th>
                                 </tr>
@@ -622,12 +745,7 @@ export default function CreateCampaignPage() {
                                     <td style={{ padding: '8px 10px', fontWeight: '600', color: '#0f172a' }}>{getAgeRangeStr(item)}</td>
                                     <td style={{ padding: '8px 10px', textAlign: 'right', color: '#334155' }}>{formatCurrency(item.base_amount || getAmountPerMember(item))}</td>
                                     <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#8b5cf6' }}>
-                                      <div>{item.married_count || preview.selected_married_count || '-'}</div>
-                                      {item.deduplicated_members && item.deduplicated_members.length > 0 && (
-                                        <div style={{ fontSize: '0.62rem', color: '#16a34a', fontWeight: '700', lineHeight: 1.2, marginTop: '2px' }}>
-                                          ({item.deduplicated_members.length} event member: {item.deduplicated_members[0].applicable_count})
-                                        </div>
-                                      )}
+                                      <div>{item.eligible_pairs ?? item.married_count ?? preview.selected_married_count ?? '-'}</div>
                                     </td>
                                     <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: '700', color: '#0f172a' }}>{getMemberCount(item)}</td>
                                     <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '700', color: '#1d4ed8' }}>{formatCurrency(getTotalAmount(item))}</td>
@@ -657,7 +775,7 @@ export default function CreateCampaignPage() {
                       <div style={{ marginTop: '16px', padding: '12px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px' }}>
                         <div style={{ fontSize: '0.78rem', fontWeight: '800', color: '#166534', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <CheckCircle size={14} color="#16a34a" />
-                          Event Members Deduplication (Khud ki kit excluded):
+                          Event Members / Beneficiaries Status:
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {preview.event_members_summary.map((em, idx) => (
@@ -667,11 +785,11 @@ export default function CreateCampaignPage() {
                                 <span style={{ color: '#64748b' }}>({em.member_code})</span>
                               </div>
                               <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: '800', color: '#15803d' }}>
-                                  {em.married_count} Kit ({formatCurrency(em.amount)})
+                                <span style={{ fontWeight: '800', color: em.is_exempted ? '#64748b' : '#15803d' }}>
+                                  {em.applicable_count ?? em.married_count ?? 0} Event(s) ({formatCurrency(em.amount || 0)})
                                 </span>
-                                <span style={{ fontSize: '0.66rem', color: '#059669', background: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', border: '1px solid #a7f3d0', fontWeight: '600' }}>
-                                  Khud ka 1 event excluded ✓
+                                <span style={{ fontSize: '0.66rem', color: em.is_exempted ? '#047857' : '#0369a1', background: em.is_exempted ? '#ecfdf5' : '#f0f9ff', padding: '2px 6px', borderRadius: '4px', border: `1px solid ${em.is_exempted ? '#a7f3d0' : '#bae6fd'}`, fontWeight: '600' }}>
+                                  {em.is_exempted ? 'Beneficiary - Exempted (No Slip) ✓' : 'Own event excluded; eligible for other events ✓'}
                                 </span>
                               </div>
                             </div>

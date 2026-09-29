@@ -11,6 +11,7 @@ const emptyForm = {
   plan_id: '',
   member_id: '',
   marriage_date: '',
+  status: '1',
   notes: '',
 };
 
@@ -151,6 +152,7 @@ export default function MarriageFormPage() {
           marriage_date: rawDate ? rawDate.split('T')[0] : '',
           notes: details.notes || '',
           amount_given: details.amount_given || '',
+          status: String(details.status || 1),
         });
 
         const cardPath = details.photo_url || details.photo || details.invitation_card || details.invitation_card_url || details.card || '';
@@ -298,8 +300,9 @@ export default function MarriageFormPage() {
     formData.append('death_date', form.marriage_date);
     formData.append('marriage_date', form.marriage_date);
     formData.append('notes', form.notes);
+    formData.append('status', form.status || '1');
 
-    if (isDeathMode && form.amount_given) {
+    if (form.amount_given) {
       formData.append('amount_given', form.amount_given);
     }
 
@@ -348,9 +351,10 @@ export default function MarriageFormPage() {
           member_id: form.member_id,
           death_date: form.marriage_date,
           marriage_date: form.marriage_date,
+          status: form.status || '1',
           notes: form.notes
         };
-        if (isDeathMode && form.amount_given) {
+        if (form.amount_given) {
           payload.amount_given = form.amount_given;
         }
         if (isEditMode) payload.id = marriageId;
@@ -554,8 +558,8 @@ export default function MarriageFormPage() {
                   )}
                 </div>
 
-                {/* Event Date & Amount (if applicable) */}
-                <div style={{ display: 'grid', gridTemplateColumns: isDeathMode ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                {/* Event Date, Status & Amount */}
+                <div style={{ display: 'grid', gridTemplateColumns: (isDeathMode || form.status === '2') ? 'repeat(auto-fit, minmax(180px, 1fr))' : '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                       {isDeathMode ? 'Death Date' : 'Marriage Date'} <span style={{ color: '#ef4444' }}>*</span>
@@ -570,14 +574,38 @@ export default function MarriageFormPage() {
                     />
                   </div>
 
-                  {isDeathMode && (
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      Case Status <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select
+                      value={form.status}
+                      onChange={e => handleInputChange('status', e.target.value)}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+                    >
+                      {isDeathMode ? (
+                        <>
+                          <option value="1">Reported (Pending Claim Settlement)</option>
+                          <option value="2">Settled (Disbursed & Paid)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="1">Upcoming (વિવાહ બાકી / आगामी)</option>
+                          <option value="2">Married (વિવાહ સંપન્ન / विवाहित)</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {(isDeathMode || form.status === '2') && (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                        Amount Given (₹) <span style={{ color: '#ef4444' }}>*</span>
+                        Amount Given (₹) {isDeathMode && <span style={{ color: '#ef4444' }}>*</span>}
                       </label>
                       <input
                         type="number"
-                        required
+                        required={isDeathMode}
                         value={form.amount_given}
                         onChange={e => handleInputChange('amount_given', e.target.value)}
                         className="premium-input"

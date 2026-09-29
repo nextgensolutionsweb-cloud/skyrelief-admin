@@ -164,7 +164,7 @@ export default function MarriagesListPage() {
       }
       if (statusFilter !== 'All') {
         if (isDeathMode) {
-          const sVal = statusFilter === 'Settled' ? 2 : statusFilter === 'Reported' ? 1 : statusFilter === 'Deleted' ? -1 : '';
+          const sVal = statusFilter === 'Settled' ? 2 : statusFilter === 'Completed' ? 3 : statusFilter === 'Reported' ? 1 : statusFilter === 'Deleted' ? -1 : '';
           if (sVal !== '') endpoint += `&status=${sVal}`;
         } else {
           const sVal = statusFilter === 'Upcoming' ? 1 : (statusFilter === 'Married' || statusFilter === 'Settled') ? 2 : statusFilter === 'Completed' ? 3 : statusFilter === 'Deleted' ? -1 : '';
@@ -312,7 +312,8 @@ export default function MarriagesListPage() {
     if (!completeItem) return;
     setCompleting(true);
     try {
-      const res = await apiRequest('/api/marriage/mark-as-completed', {
+      const endpoint = isDeathMode ? '/api/death/mark-as-completed' : '/api/marriage/mark-as-completed';
+      const res = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({
           id: completeItem.id,
@@ -320,7 +321,7 @@ export default function MarriagesListPage() {
         })
       });
       if (res.s === 1) {
-        showToast(res.m || 'Member marriage marked as Completed successfully.', 'success');
+        showToast(res.m || (isDeathMode ? 'Member death case marked as Completed successfully.' : 'Member marriage marked as Completed successfully.'), 'success');
         setCompleteItem(null);
         fetchCases();
         fetchDashboard();
@@ -432,12 +433,12 @@ export default function MarriagesListPage() {
     const statusVal = Number(item.status);
     if (statusFilter === 'All') {
       if (statusVal === -1) return false;
-    } else if (statusFilter === 'Upcoming') {
+    } else if (statusFilter === 'Upcoming' || statusFilter === 'Reported') {
       if (statusVal !== 1) return false;
-    } else if (statusFilter === 'Reported') {
-      if (statusVal !== 1) return false;
-    } else if (statusFilter === 'Settled') {
+    } else if (statusFilter === 'Married' || statusFilter === 'Settled') {
       if (statusVal !== 2) return false;
+    } else if (statusFilter === 'Completed') {
+      if (statusVal !== 3) return false;
     } else if (statusFilter === 'Deleted') {
       if (statusVal !== -1) return false;
     }
@@ -472,6 +473,7 @@ export default function MarriagesListPage() {
   const deathStatusStyle = {
     1: { bg: '#fef3c7', color: '#b45309', label: 'Reported' },
     2: { bg: '#dcfce7', color: '#15803d', label: 'Settled' },
+    3: { bg: '#f3e8ff', color: '#7e22ce', label: 'Completed' },
     '-1': { bg: '#fee2e2', color: '#991b1b', label: 'Deleted' },
   };
 
@@ -783,7 +785,7 @@ export default function MarriagesListPage() {
 
             {/* Status Filter Tabs */}
             <div style={{ display: 'flex', gap: '4px', background: '#f8fafc', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-              {(isDeathMode ? ['All', 'Settled', 'Deleted'] : ['All', 'Upcoming', 'Married', 'Completed', 'Deleted']).map(t => (
+              {(isDeathMode ? ['All', 'Reported', 'Settled', 'Completed', 'Deleted'] : ['All', 'Upcoming', 'Married', 'Completed', 'Deleted']).map(t => (
                 <button
                   key={t}
                   onClick={() => handleStatusChange(t)}
@@ -1032,7 +1034,7 @@ export default function MarriagesListPage() {
                                 </button>
                               )}
 
-                              {(!isDeathMode && Number(item.status) === 2) && (
+                              {(Number(item.status) === 2) && (
                                 <button
                                   title="Mark Tenure as Completed (Stop Dues)"
                                   onClick={() => openCompleteModal(item)}
@@ -1219,7 +1221,7 @@ export default function MarriagesListPage() {
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setCompleteItem(null)} />
           <div className="card" style={{ position: 'relative', background: '#fff', borderRadius: '20px', padding: '28px', maxWidth: '460px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h2 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-              🏆 Mark Marriage Tenure as Completed
+              🏆 {isDeathMode ? 'Mark Death Case as Completed' : 'Mark Marriage Tenure as Completed'}
             </h2>
             
             <form onSubmit={handleConfirmComplete} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

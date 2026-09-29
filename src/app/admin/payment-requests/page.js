@@ -15,6 +15,7 @@ import {
   QrCode, 
   Calendar, 
   User, 
+  UserCheck,
   Phone, 
   ShieldCheck, 
   FileText,
@@ -241,6 +242,8 @@ export default function PaymentRequestsPage() {
       (item.phone && item.phone.toLowerCase().includes(q)) ||
       (item.agent_name && item.agent_name.toLowerCase().includes(q)) ||
       (item.agent_code && item.agent_code.toLowerCase().includes(q)) ||
+      (item.collector_name && item.collector_name.toLowerCase().includes(q)) ||
+      (item.collector_code && item.collector_code.toLowerCase().includes(q)) ||
       (item.transaction_id && item.transaction_id.toLowerCase().includes(q))
     );
   });
@@ -727,20 +730,42 @@ export default function PaymentRequestsPage() {
                         )}
                       </td>
 
-                      {/* Agent */}
+                      {/* Collected By */}
                       <td style={{ padding: '16px 20px', verticalAlign: 'middle' }}>
-                        <div style={{ fontWeight: '800', color: '#0369a1', fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
-                          {item.agent_name || 'Direct (Member App)'}
-                        </div>
-                        {item.agent_code && (
-                          <div style={{ display: 'inline-block', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', marginTop: '2px' }}>
-                            {item.agent_code}
-                          </div>
-                        )}
-                        {item.agent_phone && (
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
-                            📞 {item.agent_phone}
-                          </div>
+                        {(item.collector_type === 'member' || (!item.agent_name && (item.submitted_by === 'member' || !item.agent_id))) ? (
+                          <>
+                            <div style={{ fontWeight: '800', color: '#059669', fontSize: '0.88rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span>👤</span>
+                              <span>{item.member_name || item.collector_name || 'Member (Self)'}</span>
+                            </div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', marginTop: '2px' }}>
+                              <span>{item.member_code || item.collector_code}</span>
+                              <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>(Self Paid)</span>
+                            </div>
+                            {item.phone && (
+                              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                📞 {item.phone}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontWeight: '800', color: '#0369a1', fontSize: '0.88rem', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <span>🛡️</span>
+                              <span>{item.agent_name || item.collector_name || 'Agent'}</span>
+                            </div>
+                            {(item.agent_code || item.collector_code) && (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', marginTop: '2px' }}>
+                                <span>{item.agent_code || item.collector_code}</span>
+                                <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>(Agent)</span>
+                              </div>
+                            )}
+                            {item.agent_phone && (
+                              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                📞 {item.agent_phone}
+                              </div>
+                            )}
+                          </>
                         )}
                       </td>
 
@@ -1002,30 +1027,54 @@ export default function PaymentRequestsPage() {
                   </div>
                 </div>
 
-                {/* Agent Information Box */}
-                <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '16px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#7c3aed', fontWeight: '800', fontSize: '0.85rem' }}>
-                    <ShieldCheck size={16} /> COLLECTING AGENT
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#64748b' }}>Agent Name:</span>
-                      <span style={{ fontWeight: '800', color: '#0f172a' }}>{selectedItem.agent_name || 'Direct Payment by Member'}</span>
+                {/* Collector Information Box */}
+                {((selectedItem.collector_type === 'member') || (!selectedItem.agent_name && (selectedItem.submitted_by === 'member' || !selectedItem.agent_id))) ? (
+                  <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#059669', fontWeight: '800', fontSize: '0.85rem' }}>
+                      <UserCheck size={16} /> PAID DIRECTLY BY MEMBER (SELF)
                     </div>
-                    {selectedItem.agent_code && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#64748b' }}>Agent Code:</span>
-                        <span style={{ fontWeight: '700', color: '#7c3aed' }}>{selectedItem.agent_code}</span>
+                        <span style={{ color: '#64748b' }}>Member Name:</span>
+                        <span style={{ fontWeight: '800', color: '#0f172a' }}>{selectedItem.member_name || selectedItem.collector_name}</span>
                       </div>
-                    )}
-                    {selectedItem.agent_phone && (
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#64748b' }}>Agent Phone:</span>
-                        <span style={{ fontWeight: '600', color: '#334155' }}>{selectedItem.agent_phone}</span>
+                        <span style={{ color: '#64748b' }}>Member Code:</span>
+                        <span style={{ fontWeight: '700', color: '#059669' }}>{selectedItem.member_code || selectedItem.collector_code}</span>
                       </div>
-                    )}
+                      {(selectedItem.phone || selectedItem.collector_phone) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Phone:</span>
+                          <span style={{ fontWeight: '600', color: '#334155' }}>{selectedItem.phone || selectedItem.collector_phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '16px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#7c3aed', fontWeight: '800', fontSize: '0.85rem' }}>
+                      <ShieldCheck size={16} /> COLLECTING AGENT
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b' }}>Agent Name:</span>
+                        <span style={{ fontWeight: '800', color: '#0f172a' }}>{selectedItem.agent_name || selectedItem.collector_name}</span>
+                      </div>
+                      {(selectedItem.agent_code || selectedItem.collector_code) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Agent Code:</span>
+                          <span style={{ fontWeight: '700', color: '#7c3aed' }}>{selectedItem.agent_code || selectedItem.collector_code}</span>
+                        </div>
+                      )}
+                      {(selectedItem.agent_phone || selectedItem.collector_phone) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#64748b' }}>Agent Phone:</span>
+                          <span style={{ fontWeight: '600', color: '#334155' }}>{selectedItem.agent_phone || selectedItem.collector_phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Transaction & Proof Verification */}
                 <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '16px', border: '1px solid #e2e8f0' }}>

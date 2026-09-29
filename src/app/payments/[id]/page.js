@@ -265,7 +265,7 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
           </div>
         </div>
         
-        {/* Export Buttons */}
+        {/* Export Buttons
         <div className="no-print" style={{ display: 'flex', gap: '8px' }}>
           <button onClick={handleExportCSV} className="btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Download size={14} /> Export CSV
@@ -276,7 +276,7 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
           <button onClick={handlePrint} className="btn-secondary" style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Printer size={14} /> Print Campaign
           </button>
-        </div>
+        </div> */}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

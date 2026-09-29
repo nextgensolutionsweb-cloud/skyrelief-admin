@@ -158,6 +158,8 @@ export default function MembersListPage() {
         reqInsuranceStatus = '2';
       } else if (mainFilter === 'completed') {
         reqInsuranceStatus = '4';
+      } else if (mainFilter === 'deceased') {
+        reqInsuranceStatus = '5';
       } else if (mainFilter === 'upcoming') {
         reqMarriageStatus = '1';
       }
@@ -367,6 +369,8 @@ export default function MembersListPage() {
         reqInsuranceStatus = '2';
       } else if (mainFilter === 'married') {
         reqMarriageStatus = '2';
+      } else if (mainFilter === 'deceased') {
+        reqInsuranceStatus = '5';
       } else if (mainFilter === 'upcoming') {
         reqMarriageStatus = '1';
       }
@@ -565,6 +569,7 @@ export default function MembersListPage() {
                   { label: 'All', val: 'all' },
                   { label: 'Active', val: 'active' },
                   { label: 'Married', val: 'married' },
+                  { label: 'Deceased', val: 'deceased' },
                   { label: 'Completed', val: 'completed' },
                   { label: 'Upcoming', val: 'upcoming' },
                   { label: 'Suspended', val: 'suspended' }

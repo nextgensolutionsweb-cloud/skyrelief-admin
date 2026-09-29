@@ -138,7 +138,8 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     e.preventDefault();
     setCompleting(true);
     try {
-      const res = await apiRequest('/api/marriage/mark-as-completed', {
+      const endpoint = isDeathCase ? '/api/death/mark-as-completed' : '/api/marriage/mark-as-completed';
+      const res = await apiRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify({
           id: marriageId,
@@ -146,7 +147,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
         })
       });
       if (res.s === 1) {
-        showToast(res.m || 'Marriage case marked as Completed successfully.', 'success');
+        showToast(res.m || (isDeathCase ? 'Death case marked as Completed successfully.' : 'Marriage case marked as Completed successfully.'), 'success');
         setCompleteOpen(false);
         fetchMarriage();
       } else {
@@ -279,7 +280,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
                 <Heart size={14} /> <span>{isDeathCase ? 'Mark As Settled' : 'Mark As Married'}</span>
               </button>
             )}
-            {(!isDeathCase && (Number(marriage.status) === 2 || marriage.status === 'Married' || marriage.status === 'Settled')) && (
+            {(Number(marriage.status) === 2 || marriage.status === 'Married' || marriage.status === 'Settled') && (
               <button
                 className="btn-primary"
                 onClick={() => setCompleteOpen(true)}

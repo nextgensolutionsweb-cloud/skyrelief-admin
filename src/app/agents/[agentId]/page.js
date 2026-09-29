@@ -52,10 +52,28 @@ const formatAadhaar = (aadhaar) => {
   return aadhaar;
 };
 
+const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
+
 export default function AgentDetailsPage({ params: paramsPromise }) {
   const router = useRouter();
   const params = use(paramsPromise);
   const { agentId } = params;
+
+  const handleDownloadSlip = (dueId) => {
+    if (!dueId) return;
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const url = `${BASE_API_URL}/api/payment/download-member-payment-slip/${dueId}?apikey=${apikey}&token=${token}`;
+    window.open(url, '_blank');
+  };
+
+  const handleViewSlip = (dueId) => {
+    if (!dueId) return;
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const url = `${BASE_API_URL}/api/payment/member-payment-slip/${dueId}?apikey=${apikey}&token=${token}`;
+    window.open(url, '_blank');
+  };
 
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +116,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   // Export Modal state
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportType, setExportType] = useState('JOINING_FEE');
-  const [exportStatuses, setExportStatuses] = useState(['PENDING']);
+  const [exportStatuses, setExportStatuses] = useState(['ALL']);
   const [exportPlanId, setExportPlanId] = useState('ALL');
 
   // Tabs & Summary
@@ -133,13 +151,39 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [markPaidNotes, setMarkPaidNotes] = useState('');
   const [submittingPaid, setSubmittingPaid] = useState(false);
 
+  const getTodayDateString = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatDateForInput = (dateVal) => {
+    if (!dateVal) return getTodayDateString();
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return getTodayDateString();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutDate, setPayoutDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [payoutNotes, setPayoutNotes] = useState('');
   const [submittingPayout, setSubmittingPayout] = useState(false);
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
+  const [depositDate, setDepositDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
   const [depositNotes, setDepositNotes] = useState('');
   const [depositPaymentMode, setDepositPaymentMode] = useState('Cash');
   const [depositProofImage, setDepositProofImage] = useState(null);
@@ -147,11 +191,11 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [submittingDeposit, setSubmittingDeposit] = useState(false);
 
   const [showEditPayoutModal, setShowEditPayoutModal] = useState(false);
-  const [editPayoutForm, setEditPayoutForm] = useState({ payout_id: '', amount_paid: '', reference_note: '', payment_mode: '' });
+  const [editPayoutForm, setEditPayoutForm] = useState({ payout_id: '', amount_paid: '', reference_note: '', payment_mode: '', created_at: '' });
   const [editingPayout, setEditingPayout] = useState(false);
 
   const [showEditDepositModal, setShowEditDepositModal] = useState(false);
-  const [editDepositForm, setEditDepositForm] = useState({ deposit_id: '', amount: '', reference_note: '', payment_mode: '' });
+  const [editDepositForm, setEditDepositForm] = useState({ deposit_id: '', amount: '', reference_note: '', payment_mode: '', created_at: '' });
   const [editingDeposit, setEditingDeposit] = useState(false);
 
   const openEditPayoutModal = (p) => {
@@ -159,7 +203,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       payout_id: p.id,
       amount_paid: p.amount_paid,
       reference_note: p.reference_note || '',
-      payment_mode: p.payment_mode || ''
+      payment_mode: p.payment_mode || '',
+      created_at: formatDateForInput(p.created_at)
     });
     setShowEditPayoutModal(true);
   };
@@ -213,7 +258,8 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       deposit_id: d.id,
       amount: d.amount,
       reference_note: d.reference_note || '',
-      payment_mode: d.payment_mode || 'Cash'
+      payment_mode: d.payment_mode || 'Cash',
+      created_at: formatDateForInput(d.created_at)
     });
     setShowEditDepositModal(true);
   };
@@ -358,7 +404,10 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const fetchCommissions = async () => {
     setLoadingWallet(true);
     try {
-      const res = await apiRequest(`/api/agent/commission-history?agent_id=${agentId}&page=${commissionsPage}&limit=10`);
+      const typeParam = walletTab === 'Collected Joining Fees' 
+        ? '&type=JOINING_FEE' 
+        : (walletTab === 'Paid Slips' ? '&type=INSTALLMENT' : '');
+      const res = await apiRequest(`/api/agent/commission-history?agent_id=${agentId}&page=${commissionsPage}&limit=10${typeParam}`);
       if (res.s === 1 && res.r) {
         setCommissions(res.r);
         setCommissionsMeta(res.meta);
@@ -495,6 +544,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       formData.append('agent_id', agentId);
       formData.append('amount_paid', payoutAmount);
       formData.append('reference_note', payoutNotes);
+      if (payoutDate) formData.append('created_at', payoutDate);
       if (payoutProofImage) formData.append('proof_image', payoutProofImage);
 
       const res = await apiRequest('/api/agent/payout', {
@@ -505,6 +555,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         showToast('Payout recorded successfully', 'success');
         setIsPayoutModalOpen(false);
         setPayoutAmount('');
+        setPayoutDate(getTodayDateString());
         setPayoutNotes('');
         setPayoutProofImage(null);
         fetchWalletSummary();
@@ -531,6 +582,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       formData.append('amount', depositAmount);
       formData.append('reference_note', depositNotes);
       formData.append('payment_mode', depositPaymentMode);
+      if (depositDate) formData.append('created_at', depositDate);
       if (depositProofImage) formData.append('proof_image', depositProofImage);
 
       const res = await apiRequest('/api/agent/deposit', {
@@ -541,6 +593,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
         showToast('Deposit recorded successfully', 'success');
         setIsDepositModalOpen(false);
         setDepositAmount('');
+        setDepositDate(getTodayDateString());
         setDepositNotes('');
         setDepositPaymentMode('Cash');
         setDepositProofImage(null);
@@ -1634,7 +1687,25 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
           <button 
             className="btn-primary" 
             style={{ padding: '8px 16px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}
-            onClick={() => setShowExportModal(true)}
+            onClick={() => {
+              if (walletTab === 'Collected Joining Fees') {
+                setExportType('JOINING_FEE');
+                setExportStatuses(['COLLECTED']);
+              } else if (walletTab === 'Pending Joining Fees') {
+                setExportType('JOINING_FEE');
+                setExportStatuses(['PENDING']);
+              } else if (walletTab === 'Paid Slips') {
+                setExportType('SLIP');
+                setExportStatuses(['COLLECTED']);
+              } else if (walletTab === 'Pending Slips') {
+                setExportType('SLIP');
+                setExportStatuses(['PENDING']);
+              } else {
+                setExportType('JOINING_FEE');
+                setExportStatuses(['ALL']);
+              }
+              setShowExportModal(true);
+            }}
           >
             <Download size={16} /> Export Report
           </button>
@@ -1992,16 +2063,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9' }}>
-                  {['MEMBER', 'DATE', 'FEE COLLECTED', 'COMMISSION EARNED'].map(h => (
+                  {['MEMBER', 'DATE', 'FEE COLLECTED'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {commissions.filter(c => c.transaction_type === 'JOINING_FEE').length === 0 ? (
-                  <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No collected joining fees found.</td></tr>
+                {commissions.length === 0 ? (
+                  <tr><td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No collected joining fees found.</td></tr>
                 ) : (
-                  commissions.filter(c => c.transaction_type === 'JOINING_FEE').map((comm, idx) => (
+                  commissions.map((comm, idx) => (
                     <tr key={`comm-fee-${comm.reference_id || idx}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{comm.member_name}</div>
@@ -2009,7 +2080,6 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{new Date(comm.created_at).toLocaleDateString()}</td>
                       <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: '#10b981', fontWeight: '800' }}>₹{Number(comm.collected_amount).toFixed(2)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: '#0f172a', fontWeight: '800' }}>₹{Number(comm.commission_amount || comm.commission_earned).toFixed(2)}</td>
                     </tr>
                   ))
                 )}
@@ -2028,16 +2098,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9' }}>
-                  {['MEMBER', 'DATE', 'AMOUNT COLLECTED', 'COMMISSION EARNED'].map(h => (
+                  {['MEMBER', 'DATE', 'AMOUNT COLLECTED', 'PAYMENT SLIP'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '0.68rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {commissions.filter(c => c.transaction_type === 'INSTALLMENT').length === 0 ? (
+                {commissions.length === 0 ? (
                   <tr><td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No paid slips found.</td></tr>
                 ) : (
-                  commissions.filter(c => c.transaction_type === 'INSTALLMENT').map((comm, idx) => (
+                  commissions.map((comm, idx) => (
                     <tr key={`comm-slip-${comm.reference_id || idx}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a' }}>{comm.member_name}</div>
@@ -2045,7 +2115,50 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                       </td>
                       <td style={{ padding: '12px 16px', fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{new Date(comm.created_at).toLocaleDateString()}</td>
                       <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: '#10b981', fontWeight: '800' }}>₹{Number(comm.collected_amount).toFixed(2)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.9rem', color: '#0f172a', fontWeight: '800' }}>₹{Number(comm.commission_earned).toFixed(2)}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            onClick={() => handleDownloadSlip(comm.reference_id)}
+                            className="btn-secondary"
+                            title="Download Payment Slip PDF"
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              borderRadius: '8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              color: '#0284c7',
+                              borderColor: '#bae6fd',
+                              background: '#f0f9ff'
+                            }}
+                          >
+                            <Download size={13} />
+                            <span>Download Slip</span>
+                          </button>
+                          <button
+                            onClick={() => handleViewSlip(comm.reference_id)}
+                            className="btn-secondary"
+                            title="View Payment Slip"
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              borderRadius: '8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              color: '#475569',
+                              borderColor: '#e2e8f0',
+                              background: '#fff'
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>View</span>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -2116,6 +2229,17 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   onChange={e => setDepositAmount(e.target.value)} 
                   className="premium-input" 
                   placeholder="Enter amount" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Deposit Date *</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={depositDate} 
+                  onChange={e => setDepositDate(e.target.value)} 
+                  className="premium-input" 
                   style={{ width: '100%' }} 
                 />
               </div>
@@ -2191,6 +2315,17 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 />
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Payout Date *</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={payoutDate} 
+                  onChange={e => setPayoutDate(e.target.value)} 
+                  className="premium-input" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Notes (Optional)</label>
                 <input 
                   type="text" 
@@ -2238,6 +2373,17 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   onChange={e => setEditPayoutForm({...editPayoutForm, amount_paid: e.target.value})} 
                   className="premium-input" 
                   placeholder="Enter amount" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Payout Date *</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={editPayoutForm.created_at} 
+                  onChange={e => setEditPayoutForm({...editPayoutForm, created_at: e.target.value})} 
+                  className="premium-input" 
                   style={{ width: '100%' }} 
                 />
               </div>
@@ -2306,6 +2452,17 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 />
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Deposit Date *</label>
+                <input 
+                  type="date" 
+                  required 
+                  value={editDepositForm.created_at} 
+                  onChange={e => setEditDepositForm({ ...editDepositForm, created_at: e.target.value })} 
+                  className="premium-input" 
+                  style={{ width: '100%' }} 
+                />
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Payment Mode</label>
                 <select 
                   value={editDepositForm.payment_mode} 
@@ -2364,12 +2521,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                       name="exportType" 
                       value="SLIP" 
                       checked={exportType === 'SLIP'} 
-                      onChange={e => {
-                        setExportType(e.target.value);
-                        if (exportStatuses.length > 1) {
-                          setExportStatuses(['COLLECTED']);
-                        }
-                      }} 
+                      onChange={e => setExportType(e.target.value)} 
                     />
                     Payment Slips
                   </label>
@@ -2397,7 +2549,16 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                     <input 
                       type="radio" 
                       name="exportStatusRadio"
-                      checked={exportStatuses.includes('PENDING')} 
+                      checked={exportStatuses.includes('ALL') || (exportStatuses.includes('PENDING') && exportStatuses.includes('COLLECTED'))} 
+                      onChange={() => setExportStatuses(['ALL'])} 
+                    />
+                    All
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
+                    <input 
+                      type="radio" 
+                      name="exportStatusRadio"
+                      checked={!exportStatuses.includes('ALL') && exportStatuses.includes('PENDING') && !exportStatuses.includes('COLLECTED')} 
                       onChange={() => setExportStatuses(['PENDING'])} 
                     />
                     Pending
@@ -2406,7 +2567,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                     <input 
                       type="radio" 
                       name="exportStatusRadio"
-                      checked={exportStatuses.includes('COLLECTED')} 
+                      checked={!exportStatuses.includes('ALL') && exportStatuses.includes('COLLECTED') && !exportStatuses.includes('PENDING')} 
                       onChange={() => setExportStatuses(['COLLECTED'])} 
                     />
                     Collected (Paid)
