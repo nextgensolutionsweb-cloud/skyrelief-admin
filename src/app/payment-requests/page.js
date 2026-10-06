@@ -35,7 +35,8 @@ export default function PaymentRequestsPage() {
   const [showBankSettings, setShowBankSettings] = useState(false);
   const [bankSettings, setBankSettings] = useState({
     bank_name: 'State Bank of India',
-    bank_upi_id: 'skyrelief@sbi',
+    bank_upi_id: '9016592413@ptsbi',
+    payee_name: 'Shaileshkumar Narshinbhai Modi',
     bank_account_no: '',
     bank_ifsc: '',
     default_amount: '1000'
@@ -83,7 +84,8 @@ export default function PaymentRequestsPage() {
       if (res && res.s === 1 && res.r) {
         setBankSettings({
           bank_name: res.r.bank_name || 'State Bank of India',
-          bank_upi_id: res.r.bank_upi_id || 'skyrelief@sbi',
+          bank_upi_id: res.r.bank_upi_id || '9016592413@ptsbi',
+          payee_name: res.r.payee_name || 'Shaileshkumar Narshinbhai Modi',
           bank_account_no: res.r.bank_account_no || '',
           bank_ifsc: res.r.bank_ifsc || '',
           default_amount: res.r.default_amount || '1000'
@@ -332,12 +334,23 @@ export default function PaymentRequestsPage() {
                     />
                   </div>
                   <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>Payee Name (Verified on UPI / Bank)</label>
+                    <input
+                      type="text"
+                      value={bankSettings.payee_name}
+                      onChange={(e) => setBankSettings({ ...bankSettings, payee_name: e.target.value })}
+                      placeholder="e.g. Shaileshkumar Narshinbhai Modi"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', fontWeight: '600' }}
+                      required
+                    />
+                  </div>
+                  <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>UPI VPA / Handle</label>
                     <input
                       type="text"
                       value={bankSettings.bank_upi_id}
                       onChange={(e) => setBankSettings({ ...bankSettings, bank_upi_id: e.target.value })}
-                      placeholder="e.g. skyrelief@sbi"
+                      placeholder="e.g. 9016592413@ptsbi"
                       style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #6366f1', fontSize: '0.9rem', outline: 'none', fontWeight: '700', color: '#4f46e5' }}
                       required
                     />
@@ -397,13 +410,16 @@ export default function PaymentRequestsPage() {
               </div>
               <div style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'inline-block', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${bankSettings.bank_upi_id}&pn=SkyRelief%20Foundation&cu=INR`)}`}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`upi://pay?pa=${bankSettings.bank_upi_id}&pn=${encodeURIComponent(bankSettings.payee_name || 'SkyRelief')}&cu=INR`)}`}
                   alt="QR Code Preview"
                   style={{ width: '140px', height: '140px', display: 'block' }}
                 />
               </div>
               <div style={{ fontSize: '0.8rem', fontWeight: '800', color: '#0f172a', marginTop: '10px' }}>
                 {bankSettings.bank_upi_id}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                {bankSettings.payee_name}
               </div>
             </div>
           </div>
