@@ -608,7 +608,16 @@ export default function PaymentCampaignsListPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>{item.campaign_no || '-'}</div>
                         <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{item.plan_name || '-'}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{item.married_count || 0} Marriages @ {item.per_marriage_amount ? formatCurrency(item.per_marriage_amount) : (item.age_amount_rules ? 'Age-wise' : '-')}</div>
+                        {(() => {
+                          const isDeath = item.plan_name && (item.plan_name.toLowerCase().includes('सुरक्षा') || item.plan_name.toLowerCase().includes('suraksha') || item.plan_name.toLowerCase().includes('death'));
+                          const count = Number(item.married_count) || 0;
+                          const label = isDeath ? (count === 1 ? 'Death' : 'Deaths') : (count === 1 ? 'Marriage' : 'Marriages');
+                          return (
+                            <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                              {count} {label} @ {item.per_marriage_amount ? formatCurrency(item.per_marriage_amount) : (item.age_amount_rules ? 'Age-wise' : '-')}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Collection Info */}

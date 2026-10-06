@@ -15,7 +15,7 @@ const quickActions = [
   { label: 'Add Member', icon: UserPlus,    bg: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)', shadow: 'rgba(14, 165, 233, 0.25)', href: '/members' },
   { label: 'Add Agent',  icon: UserCircle2, bg: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)', shadow: 'rgba(16, 185, 129, 0.25)', href: '/agents' },
   { label: 'Add Insurance', icon: Shield,      bg: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)', shadow: 'rgba(139, 92, 246, 0.25)', href: '/insurance' },
-  { label: 'Broadcast',  icon: Megaphone,   bg: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)', shadow: 'rgba(249, 115, 22, 0.25)', href: '/announcements' },
+  // { label: 'Broadcast',  icon: Megaphone,   bg: 'linear-gradient(135deg, #fb923c 0%, #f97316 100%)', shadow: 'rgba(249, 115, 22, 0.25)', href: '/announcements' },
 ];
 
 const memberStatusStyle = {
@@ -159,7 +159,7 @@ export default function Dashboard() {
 
   // Clean, soft-colored metric cards data
   const memberMetrics = [
-    { label: 'Total Members',     value: summary?.total_members?.toLocaleString() || '0', iconBg: '#e0f2fe', iconColor: '#0284c7', emoji: '👥', href: '/members' },
+    // { label: 'Total Members',     value: summary?.total_members?.toLocaleString() || '0', iconBg: '#e0f2fe', iconColor: '#0284c7', emoji: '👥', href: '/members' },
     { label: 'Active Members',    value: summary?.active_members?.toLocaleString() || '0', iconBg: '#dcfce7', iconColor: '#16a34a', emoji: '✅', href: '/members' },
     { label: 'Married Members',   value: summary?.married_members?.toLocaleString() || '0', iconBg: '#fdf2f8', iconColor: '#db2777', emoji: '💍', href: '/members?filter=married' },
     { label: 'Upcoming Marriages', value: summary?.upcoming_members?.toLocaleString() || '0', iconBg: '#fef3c7', iconColor: '#d97706', emoji: '⏳', href: '/members?filter=upcoming' },

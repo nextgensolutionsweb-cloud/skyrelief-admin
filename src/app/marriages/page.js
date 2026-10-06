@@ -31,10 +31,46 @@ export default function MarriagesListPage() {
   const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   // Filters State
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedPlan, setSelectedPlan] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const urlPlan = new URLSearchParams(window.location.search).get('plan_id');
+      if (urlPlan) return urlPlan;
+      const savedPlan = localStorage.getItem('sky_selected_program_plan');
+      if (savedPlan) return savedPlan;
+    }
+    return '';
+  });
   const [dateFilter, setDateFilter] = useState('');
+
+  // Debounce search input to avoid spamming the backend
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const trimmed = searchInput.trim();
+      setSearch(trimmed);
+      if (trimmed !== search) {
+        setPage(1);
+      }
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  // Sync selected plan with localStorage and URL query without modifying React router during render
+  const updateUrlAndStorage = (planId) => {
+    if (typeof window === 'undefined' || !planId) return;
+    try {
+      localStorage.setItem('sky_selected_program_plan', String(planId));
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('plan_id') !== String(planId)) {
+        url.searchParams.set('plan_id', String(planId));
+        window.history.replaceState(null, '', url.pathname + url.search);
+      }
+    } catch (e) {
+      // Ignore URL/history exceptions
+    }
+  };
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -76,35 +112,27 @@ export default function MarriagesListPage() {
         const active = res.r.filter(p => p.status !== -1 && String(p.status) !== '-1');
         setPlans(active);
         
-        // Preserve selected plan across refresh: check URL -> localStorage -> prev -> fallback
-        setSelectedPlan(prev => {
-          let target = '';
-          if (typeof window !== 'undefined') {
-            const urlPlan = new URLSearchParams(window.location.search).get('plan_id');
-            const savedPlan = localStorage.getItem('sky_selected_program_plan');
-            if (urlPlan && active.some(p => String(p.id) === String(urlPlan))) {
-              target = String(urlPlan);
-            } else if (savedPlan && active.some(p => String(p.id) === String(savedPlan))) {
-              target = String(savedPlan);
-            }
+        let target = '';
+        if (typeof window !== 'undefined') {
+          const urlPlan = new URLSearchParams(window.location.search).get('plan_id');
+          const savedPlan = localStorage.getItem('sky_selected_program_plan');
+          if (urlPlan && active.some(p => String(p.id) === String(urlPlan))) {
+            target = String(urlPlan);
+          } else if (savedPlan && active.some(p => String(p.id) === String(savedPlan))) {
+            target = String(savedPlan);
           }
-          if (!target && prev && active.some(p => String(p.id) === String(prev))) {
-            target = String(prev);
-          }
-          if (!target) {
-            const firstMarriage = active.find(p => !isDeathPlan(p));
-            target = firstMarriage ? String(firstMarriage.id) : (active[0] ? String(active[0].id) : '');
-          }
-          if (target && typeof window !== 'undefined') {
-            localStorage.setItem('sky_selected_program_plan', String(target));
-            const url = new URL(window.location.href);
-            if (url.searchParams.get('plan_id') !== String(target)) {
-              url.searchParams.set('plan_id', String(target));
-              window.history.replaceState({}, '', url.toString());
-            }
-          }
-          return String(target);
-        });
+        }
+        if (!target && selectedPlan && active.some(p => String(p.id) === String(selectedPlan))) {
+          target = String(selectedPlan);
+        }
+        if (!target) {
+          const firstMarriage = active.find(p => !isDeathPlan(p));
+          target = firstMarriage ? String(firstMarriage.id) : (active[0] ? String(active[0].id) : '');
+        }
+        if (target) {
+          setSelectedPlan(String(target));
+          updateUrlAndStorage(target);
+        }
       }
     } catch (err) {
       console.error('Error fetching plans for filter:', err);
@@ -209,8 +237,7 @@ export default function MarriagesListPage() {
 
   // Actions
   const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setPage(1);
+    setSearchInput(e.target.value);
   };
 
   const handlePlanChange = (e) => {
@@ -224,13 +251,7 @@ export default function MarriagesListPage() {
     }
     setSelectedPlan(nextVal);
     setPage(1);
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sky_selected_program_plan', String(nextVal));
-      const url = new URL(window.location.href);
-      url.searchParams.set('plan_id', String(nextVal));
-      window.history.replaceState({}, '', url.toString());
-    }
+    updateUrlAndStorage(nextVal);
   };
 
   const handleDateChange = (e) => {
@@ -775,7 +796,7 @@ export default function MarriagesListPage() {
               <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input
                 type="text"
-                value={search}
+                value={searchInput}
                 onChange={handleSearchChange}
                 placeholder="Search by member name, code, plan, phone..."
                 className="premium-input"

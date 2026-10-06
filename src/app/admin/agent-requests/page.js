@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle, XCircle, Eye, UserPlus, ShieldAlert, History, Mic, Square, Play, Trash2, CreditCard } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
@@ -7,7 +7,7 @@ import Modal from '@/components/Modal';
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
 
-export default function AgentRequestsPage() {
+function AgentRequestsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -623,7 +623,8 @@ export default function AgentRequestsPage() {
                     <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Plan:</span> <span style={{ fontWeight: '600' }}>{memberDetails.plan_name || selectedRequest.plan_name || 'N/A'}</span></div>
                     <div><span style={{ color: '#64748b' }}>Guardian:</span> <span style={{ fontWeight: '600' }}>{memberDetails.guardian || '—'}</span></div>
                     <div><span style={{ color: '#64748b' }}>Relation:</span> <span style={{ fontWeight: '600' }}>{memberDetails.relation || '—'}</span></div>
-                    <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Guardian Aadhaar:</span> <span style={{ fontWeight: '600' }}>{formatAadhaar(memberDetails.guardian_aadhaar_number || memberDetails.guardian_aadhar_no)}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Guardian Phone:</span> <span style={{ fontWeight: '600' }}>{memberDetails.guardian_phone || '—'}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Guardian Aadhaar:</span> <span style={{ fontWeight: '600' }}>{formatAadhaar(memberDetails.guardian_aadhaar_number || memberDetails.guardian_aadhar_no)}</span></div>
                   </div>
                 </div>
 
@@ -666,5 +667,17 @@ export default function AgentRequestsPage() {
       )}
 
     </div>
+  );
+}
+
+export default function AgentRequestsPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ color: '#0ea5e9', fontWeight: '600' }}>Loading requests...</div>
+      </div>
+    }>
+      <AgentRequestsContent />
+    </Suspense>
   );
 }

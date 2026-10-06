@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Edit, Heart, Download, Calendar, User, Phone, Briefcase, FileText, Upload, Clock, File, Shield, Award } from 'lucide-react';
+import { ArrowLeft, Edit, Heart, Download, Calendar, User, Phone, Briefcase, FileText, Upload, Clock, File, Shield, Award, Printer, ExternalLink, X, Image as ImageIcon } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -47,6 +47,10 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
   const [completeNotes, setCompleteNotes] = useState('');
   const [completing, setCompleting] = useState(false);
 
+  // Certificate Modal State
+  const [certModalOpen, setCertModalOpen] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   // Zoom lightbox
   const [zoomImage, setZoomImage] = useState(null);
 
@@ -54,15 +58,21 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     setLoading(true);
     try {
       let res;
+      let isDeath = isDeathQuery;
       if (isDeathQuery) {
         res = await apiRequest(`/api/death/get?id=${marriageId}`);
-        if (res.s === 1 && res.r) setIsDeathCase(true);
+        if (res.s === 1 && res.r) {
+          isDeath = true;
+          setIsDeathCase(true);
+        }
       } else {
-        res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
-        if (res.s !== 1 || !res.r) {
+        try {
+          res = await apiRequest(`/api/marriage/get?id=${marriageId}`, { skipToast: true });
+        } catch (e) {
           const deathRes = await apiRequest(`/api/death/get?id=${marriageId}`);
           if (deathRes.s === 1 && deathRes.r) {
             res = deathRes;
+            isDeath = true;
             setIsDeathCase(true);
           }
         }
@@ -70,7 +80,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
 
       if (res && res.s === 1 && res.r) {
         setMarriage(res.r);
-        setSettleAmount(res.r.amount_given || res.r.amount || (isDeathCase ? '50000' : '25000'));
+        setSettleAmount(res.r.amount_given || res.r.amount || (isDeath ? '50000' : '25000'));
       } else {
         showToast(res?.m || 'Failed to fetch details.', 'error');
       }
@@ -161,6 +171,36 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     }
   };
 
+  const handleDirectPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('id', marriageId);
+    formData.append('photo', file);
+
+    try {
+      const endpoint = isDeathCase ? '/api/death/update' : '/api/marriage/update';
+      const res = await apiRequest(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+      if (res.s === 1) {
+        showToast(isDeathCase ? 'Certificate / handover photo updated successfully!' : 'Photo updated successfully!', 'success');
+        fetchMarriage();
+      } else {
+        showToast(res.m || 'Failed to update photo', 'error');
+      }
+    } catch (err) {
+      console.error('Error uploading photo:', err);
+      showToast('Error uploading photo', 'error');
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
   // Helper getters for robust field reading
   const getMemberName = (item) => {
     if (!item) return 'N/A';
@@ -172,7 +212,9 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
       const fullName = `${fName} ${mName} ${lName}`.replace(/\s+/g, ' ').trim();
       if (fullName) return fullName;
     }
-    return item.member_name || item.name || 'N/A';
+    const directFullName = `${item.first_name || ''} ${item.middle_name || ''} ${item.last_name || ''}`.replace(/\s+/g, ' ').trim();
+    if (directFullName) return directFullName;
+    return item.member_name || item.full_name || item.name || 'N/A';
   };
 
   const getMemberCode = (item) => {
@@ -253,12 +295,12 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
         <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+              {/* <h1 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                 Case: {marriage.id || marriage.marriage_id}
-              </h1>
-              <span style={{ padding: '3px 10px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '700', background: statusInfo.bg, color: statusInfo.color }}>
+              </h1> */}
+              {/* <span style={{ padding: '3px 10px', borderRadius: '9999px', fontSize: '0.72rem', fontWeight: '700', background: statusInfo.bg, color: statusInfo.color }}>
                 ● {statusInfo.label}
-              </span>
+              </span> */}
             </div>
             <p style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '600', display: 'flex', gap: '16px', alignItems: 'center', marginTop: '6px', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {isDeathCase ? 'Death Date:' : 'Scheduled:'} {getMarriageDate(marriage)}</span>
@@ -268,6 +310,26 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              className="btn-primary"
+              onClick={() => setCertModalOpen(true)}
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                background: 'linear-gradient(135deg,#0b356d,#0284c7)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#fff',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '700',
+                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)'
+              }}
+            >
+              <FileText size={14} /> <span>📜 Generate Certificate / सहायता प्रमाण पत्र</span>
+            </button>
             <button className="btn-secondary" onClick={() => router.push(`/marriages/form?id=${marriageId}${isDeathCase ? '&type=death' : ''}`)} style={{ padding: '6px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Edit size={14} /> <span>Edit Details</span>
             </button>
@@ -306,23 +368,23 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.82rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+              {/* <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Case ID:</span>
                 <span style={{ color: '#0f172a', fontWeight: '700', fontFamily: 'monospace' }}>{marriage.id || marriage.marriage_id}</span>
-              </div>
+              </div> */}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>{isDeathCase ? 'Death Date:' : 'Marriage Date:'}</span>
                 <span style={{ color: '#0f172a', fontWeight: '700' }}>{getMarriageDate(marriage)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+              {/* <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Status:</span>
                 <span style={{ color: statusInfo.color, fontWeight: '800' }}>{statusInfo.label}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+              </div> */}
+              {/* <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Created Date:</span>
                 <span style={{ color: '#0f172a', fontWeight: '700' }}>{marriage.created_at ? marriage.created_at.split('T')[0] : 'N/A'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+              </div> */}
+              {/* <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Payment Campaign:</span>
                 {marriage.campaign_no ? (
                   <span style={{ color: '#059669', fontWeight: '800', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
@@ -333,7 +395,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
                     ⏳ Pending (Not Run)
                   </span>
                 )}
-              </div>
+              </div> */}
               {marriage.amount_given && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                   <span style={{ color: '#166534', fontWeight: '600' }}>Amount Handed Over:</span>
@@ -387,65 +449,224 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
             </h2>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* Invitation Card */}
-              <div>
-                <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>Invitation Card Preview</span>
-                {cardUrl ? (
-                  <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#f8fafc', padding: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                    <img
-                      src={cardUrl}
-                      alt="Invitation Card"
-                      style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '4px' }}
-                      onClick={() => setZoomImage(cardUrl)}
-                    />
-                    <a
-                      href={cardUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
-                      className="btn-secondary"
-                      style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                    >
-                      <Download size={12} /> Download Document
-                    </a>
-                  </div>
-                ) : (
-                  <div style={{ height: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.72rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
-                    <span>No Document Uploaded</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Marriage Photo (Only displays if marriage is settled / status 'Married') */}
-              {(marriage.status === 'Married' || marriage.status === 2 || marriage.status === '2' || statusInfo.label === 'Married') && (
+              {isDeathCase ? (
+                /* Death Proof / Certificate Photo */
                 <div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>Marriage Ceremony Photo</span>
-                  {photoUrl ? (
-                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#f8fafc', padding: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>
+                    Death Proof / Certificate / Handover Photo
+                  </span>
+                  {(photoUrl || cardUrl) ? (
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <img
-                        src={photoUrl}
-                        alt="Marriage Ceremony"
-                        style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '4px' }}
-                        onClick={() => setZoomImage(photoUrl)}
+                        src={photoUrl || cardUrl}
+                        alt="Death Certificate / Proof"
+                        style={{ width: '100%', maxHeight: '220px', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '6px' }}
+                        onClick={() => setZoomImage(photoUrl || cardUrl)}
+                        onError={(e) => {
+                          if (!e.target.dataset.triedFallback && !e.target.src.startsWith('https://api.skyrelief.org')) {
+                            e.target.dataset.triedFallback = 'true';
+                            e.target.src = e.target.src.replace(/^http:\/\/localhost:\d+/, 'https://api.skyrelief.org');
+                          }
+                        }}
                       />
-                      <a
-                        href={photoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download
-                        className="btn-secondary"
-                        style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                      >
-                        <Download size={12} /> Download Ceremony Photo
-                      </a>
+                      
+                      {/* Action buttons under photo */}
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setCertModalOpen(true)}
+                          className="btn-primary"
+                          style={{ width: '100%', padding: '8px', fontSize: '0.78rem', fontWeight: '800', background: 'linear-gradient(135deg,#0b356d,#0284c7)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#fff', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+                        >
+                          <FileText size={14} /> 📜 Generate Certificate / सहायता प्रमाण पत्र
+                        </button>
+
+                        <a
+                          href={`${BASE_API_URL}/api/${isDeathCase ? 'death' : 'marriage'}/download-certificate?id=${marriageId}`}
+                          download
+                          className="btn-secondary"
+                          style={{ width: '100%', padding: '7px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                        >
+                          <Download size={13} /> 📥 डाउनलोड PDF / Download Certificate PDF
+                        </a>
+                        
+                        <label
+                          className="btn-secondary"
+                          style={{ width: '100%', padding: '7px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                        >
+                          <Upload size={13} /> {uploadingPhoto ? 'Uploading Photo...' : '📷 Change / Replace Photo'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            disabled={uploadingPhoto}
+                            onChange={handleDirectPhotoUpload}
+                          />
+                        </label>
+
+                        <a
+                          href={photoUrl || cardUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="btn-secondary"
+                          style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        >
+                          <Download size={12} /> Download Photo / Document
+                        </a>
+                      </div>
                     </div>
                   ) : (
-                    <div style={{ height: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.72rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
-                      <span>No Photo Uploaded</span>
+                    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#64748b', fontSize: '0.78rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                      <span>No Proof / Handover Photo Uploaded</span>
+                      <label
+                        className="btn-primary"
+                        style={{ padding: '7px 14px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', background: 'linear-gradient(135deg,#0b356d,#0284c7)' }}
+                      >
+                        <Upload size={13} /> {uploadingPhoto ? 'Uploading Photo...' : '📷 Upload Handover Photo'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          disabled={uploadingPhoto}
+                          onChange={handleDirectPhotoUpload}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setCertModalOpen(true)}
+                        className="btn-secondary"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <FileText size={13} /> 📜 Generate Certificate Anyway
+                      </button>
                     </div>
                   )}
                 </div>
+              ) : (
+                <>
+                  {/* Invitation Card */}
+                  <div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>Invitation Card Preview</span>
+                    {cardUrl ? (
+                      <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#f8fafc', padding: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <img
+                          src={cardUrl}
+                          alt="Invitation Card"
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '4px' }}
+                          onClick={() => setZoomImage(cardUrl)}
+                          onError={(e) => {
+                            if (!e.target.dataset.triedFallback && !e.target.src.startsWith('https://api.skyrelief.org')) {
+                              e.target.dataset.triedFallback = 'true';
+                              e.target.src = e.target.src.replace(/^http:\/\/localhost:\d+/, 'https://api.skyrelief.org');
+                            }
+                          }}
+                        />
+                        <a
+                          href={cardUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="btn-secondary"
+                          style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        >
+                          <Download size={12} /> Download Document
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ height: '90px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.72rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                        <span>No Document Uploaded</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Marriage Photo (Ceremony / Handover) */}
+                  <div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '8px' }}>Marriage Ceremony / Handover Photo</span>
+                    {photoUrl ? (
+                      <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden', background: '#f8fafc', padding: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                        <img
+                          src={photoUrl}
+                          alt="Marriage Ceremony"
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', cursor: 'zoom-in', borderRadius: '4px' }}
+                          onClick={() => setZoomImage(photoUrl)}
+                          onError={(e) => {
+                            if (!e.target.dataset.triedFallback && !e.target.src.startsWith('https://api.skyrelief.org')) {
+                              e.target.dataset.triedFallback = 'true';
+                              e.target.src = e.target.src.replace(/^http:\/\/localhost:\d+/, 'https://api.skyrelief.org');
+                            }
+                          }}
+                        />
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setCertModalOpen(true)}
+                            className="btn-primary"
+                            style={{ width: '100%', padding: '8px', fontSize: '0.78rem', fontWeight: '800', background: 'linear-gradient(135deg,#0b356d,#0284c7)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#fff', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}
+                          >
+                            <FileText size={14} /> 📜 Generate Marriage Certificate / सहयोग प्रमाण पत्र
+                          </button>
+                          <a
+                            href={`${BASE_API_URL}/api/marriage/download-certificate?id=${marriageId}`}
+                            download
+                            className="btn-secondary"
+                            style={{ width: '100%', padding: '7px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#0284c7', borderColor: '#bae6fd', background: '#f0f9ff' }}
+                          >
+                            <Download size={13} /> 📥 डाउनलोड PDF / Download Certificate PDF
+                          </a>
+                          <label
+                            className="btn-secondary"
+                            style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer' }}
+                          >
+                            <Upload size={13} /> {uploadingPhoto ? 'Uploading Photo...' : '📷 Change / Replace Photo'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              disabled={uploadingPhoto}
+                              onChange={handleDirectPhotoUpload}
+                            />
+                          </label>
+                          <a
+                            href={photoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="btn-secondary"
+                            style={{ width: '100%', padding: '6px', fontSize: '0.75rem', fontWeight: '750', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          >
+                            <Download size={12} /> Download Ceremony Photo
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#64748b', fontSize: '0.75rem', background: '#f8fafc', borderRadius: '10px', border: '1.5px dashed #cbd5e1' }}>
+                        <span>No Ceremony Photo Uploaded</span>
+                        <label
+                          className="btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                        >
+                          <Upload size={13} /> {uploadingPhoto ? 'Uploading...' : '📷 Upload Ceremony Photo'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            disabled={uploadingPhoto}
+                            onChange={handleDirectPhotoUpload}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setCertModalOpen(true)}
+                          className="btn-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: '750', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <FileText size={13} /> 📜 Generate Certificate Anyway
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
             </div>
@@ -612,6 +833,170 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
               </button>
             </div>
             <img src={zoomImage} alt="Document Zoomed" style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: '8px' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Generator & Preview Modal */}
+      {certModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)'
+          }}
+          onClick={() => setCertModalOpen(false)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '950px',
+              maxWidth: '96vw',
+              height: '92vh',
+              background: '#ffffff',
+              borderRadius: '20px',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '14px 20px',
+                borderBottom: '1.5px solid #e2e8f0',
+                background: '#f8fafc'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.4rem' }}>📜</span>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
+                    {isDeathCase ? 'सुरक्षा सहायता प्रमाण पत्र' : 'कन्या विवाह सहयोग प्रमाण पत्र'} (Assistance Certificate)
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0, fontWeight: '600' }}>
+                    Member: <strong>{getMemberName(marriage)}</strong> ({getMemberCode(marriage)}) | Amount: <strong>₹{Number(marriage?.amount_given || marriage?.amount || 25000).toLocaleString('en-IN')}/-</strong>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a
+                  href={`${BASE_API_URL}/api/${isDeathCase ? 'death' : 'marriage'}/download-certificate?id=${marriageId}`}
+                  download
+                  className="btn-primary"
+                  style={{
+                    padding: '7px 16px',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    background: 'linear-gradient(135deg,#0284c7,#0ea5e9)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    textDecoration: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(14, 165, 233, 0.25)'
+                  }}
+                >
+                  <Download size={15} /> <span>डाउनलोड PDF / Download PDF</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const iframe = document.getElementById('cert-preview-iframe');
+                    if (iframe && iframe.contentWindow) {
+                      iframe.contentWindow.focus();
+                      iframe.contentWindow.print();
+                    }
+                  }}
+                  className="btn-primary"
+                  style={{
+                    padding: '7px 16px',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    background: 'linear-gradient(135deg,#0b356d,#0284c7)',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)'
+                  }}
+                >
+                  <Printer size={15} /> <span>प्रिंट करें / Print Certificate</span>
+                </button>
+
+                <a
+                  href={`${BASE_API_URL}/api/${isDeathCase ? 'death' : 'marriage'}/certificate?id=${marriageId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary"
+                  style={{
+                    padding: '7px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: '700',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    textDecoration: 'none',
+                    color: '#334155'
+                  }}
+                >
+                  <ExternalLink size={14} /> <span>न्यू टैब में खोलें</span>
+                </a>
+
+                <button
+                  onClick={() => setCertModalOpen(false)}
+                  style={{
+                    cursor: 'pointer',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    color: '#64748b'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body / Iframe */}
+            <div style={{ flex: 1, background: '#f1f5f9', position: 'relative', overflow: 'hidden' }}>
+              <iframe
+                id="cert-preview-iframe"
+                src={`${BASE_API_URL}/api/${isDeathCase ? 'death' : 'marriage'}/certificate?id=${marriageId}`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  display: 'block'
+                }}
+                title="Assistance Certificate Preview"
+              />
+            </div>
           </div>
         </div>
       )}

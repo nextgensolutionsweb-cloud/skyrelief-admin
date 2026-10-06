@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, CreditCard, Calendar, Users, Ban, Trash2, Eye, EyeOff, Copy, Key, Heart, ShieldCheck, CheckCircle2, Award, Printer, Shield, User, Download, FileCheck, Check, Droplet, Sparkles } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, CreditCard, Calendar, Users, Ban, Trash2, Eye, EyeOff, Copy, Key, Heart, ShieldCheck, CheckCircle2, Award, Printer, Shield, User, Download, FileCheck, Check, Droplet, Sparkles, Receipt } from 'lucide-react';
 import { apiRequest, formatCurrency, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -353,6 +353,14 @@ export default function MemberProfilePage({ params: paramsPromise }) {
     const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
     const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
     const url = `${BASE_API_URL}/api/payment/member-payment-slip/${dueId}?apikey=${apikey}&token=${token}`;
+    window.open(url, "_blank");
+  };
+
+  const handleViewReceipt = (dueId) => {
+    if (!dueId) return;
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const url = `${BASE_API_URL}/api/payment/payment-receipt/${dueId}?apikey=${apikey}&token=${token}`;
     window.open(url, "_blank");
   };
 
@@ -1308,10 +1316,14 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                       <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.82rem' }}>{ins.relation || ins.guardian_relation || '—'}</span>
                     </div>
                     <div>
+                      <span style={{ color: '#64748b', fontWeight: '600', fontSize: '0.7rem', display: 'block' }}>Guardian Phone</span>
+                      <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.82rem' }}>{ins.guardian_phone || member.guardian_phone || '—'}</span>
+                    </div>
+                    <div>
                       <span style={{ color: '#64748b', fontWeight: '600', fontSize: '0.7rem', display: 'block' }}>Aadhaar No</span>
                       <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.82rem' }}>{formatAadhaar(ins.guardian_aadhaar_number || ins.guardian_aadhar_no)}</span>
                     </div>
-                    <div>
+                    <div style={{ gridColumn: 'span 2' }}>
                       <span style={{ color: '#64748b', fontWeight: '600', fontSize: '0.7rem', display: 'block' }}>Document</span>
                       {ins.guardian_aadhaar_img || ins.guardian_aadhar_photo ? (
                         <button 
@@ -1632,6 +1644,30 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {st === 1 && (
+                              <button
+                                onClick={() => handleViewReceipt(item.due_id || item.id)}
+                                className="btn-primary"
+                                title="View / Download Payment Receipt"
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: '8px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '700',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: '#0284c7',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)'
+                                }}
+                              >
+                                <Receipt size={14} color="#ffffff" />
+                                <span>Receipt</span>
+                              </button>
+                            )}
+
                             <button
                               onClick={() => handleViewSlip(item.due_id || item.id)}
                               className="btn-secondary"

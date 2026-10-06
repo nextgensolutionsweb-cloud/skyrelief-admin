@@ -136,24 +136,40 @@ export default function MarriageFormPage() {
   const fetchMarriageDetails = async () => {
     setLoading(true);
     try {
-      let res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
-      if (res.s !== 1 || !res.r) {
+      let res;
+      if (paramType === 'death') {
         res = await apiRequest(`/api/death/get?id=${marriageId}`);
+      } else if (paramType === 'marriage') {
+        res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
+      } else {
+        try {
+          res = await apiRequest(`/api/death/get?id=${marriageId}`, { skipToast: true });
+        } catch (e) {
+          res = await apiRequest(`/api/marriage/get?id=${marriageId}`);
+        }
       }
-      if (res.s === 1 && res.r) {
+
+      if (res && res.s === 1 && res.r) {
         const details = res.r;
         const planId = String(details.plan_id || details.insurance_plan?.id || '');
         const savedMemberId = String(details.member_id || details.member?.id || '');
-        const rawDate = details.marriage_date || details.death_date || details.date || '';
+        const rawDate = details.death_date || details.marriage_date || details.date || '';
 
         setForm({
           plan_id: planId,
           member_id: savedMemberId,
-          marriage_date: rawDate ? rawDate.split('T')[0] : '',
+          marriage_date: rawDate ? String(rawDate).split('T')[0] : '',
           notes: details.notes || '',
           amount_given: details.amount_given || '',
           status: String(details.status || 1),
         });
+
+        const memberDisplayName = details.member_code 
+          ? `${details.member_code} - ${details.full_name || `${details.first_name || ''} ${details.last_name || ''}`.trim() || 'Member'}`
+          : '';
+        if (memberDisplayName) {
+          setMemberSearch(memberDisplayName);
+        }
 
         const cardPath = details.photo_url || details.photo || details.invitation_card || details.invitation_card_url || details.card || '';
         if (cardPath) {
@@ -165,7 +181,7 @@ export default function MarriageFormPage() {
           await fetchMembersForPlan(planId, savedMemberId);
         }
       } else {
-        showToast(res.m || 'Failed to fetch case details', 'error');
+        showToast(res?.m || 'Failed to fetch case details', 'error');
       }
     } catch (err) {
       console.error('Error fetching details:', err);
@@ -529,9 +545,9 @@ export default function MarriageFormPage() {
                           <span>Fetching active members for this plan...</span>
                         </div>
                       ) : filteredMembers.length > 0 ? (
-                        filteredMembers.map(m => (
+                        filteredMembers.map((m, idx) => (
                           <div
-                            key={m.id}
+                            key={m.id || m.member_id || m.member_code || `member-${idx}`}
                             onClick={() => selectMember(m)}
                             style={{
                               padding: '10px 14px',

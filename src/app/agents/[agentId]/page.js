@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download, Users, Shield, ShieldCheck, CheckCircle2, User, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download, Users, Shield, ShieldCheck, CheckCircle2, User, Heart, Sparkles, Receipt } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
 const statusStyle = {
@@ -72,6 +72,14 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
     const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
     const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
     const url = `${BASE_API_URL}/api/payment/member-payment-slip/${dueId}?apikey=${apikey}&token=${token}`;
+    window.open(url, '_blank');
+  };
+
+  const handleViewReceipt = (dueId) => {
+    if (!dueId) return;
+    const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey') || '';
+    const token = localStorage.getItem('sky_token') || localStorage.getItem('token') || '';
+    const url = `${BASE_API_URL}/api/payment/payment-receipt/${dueId}?apikey=${apikey}&token=${token}`;
     window.open(url, '_blank');
   };
 
@@ -873,7 +881,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: agent.status === 1 ? '#10b981' : '#f59e0b' }} />
                   {displayStatus} Agent
                 </span>
-
+{/* 
                 <span style={{ 
                   display: 'inline-flex', 
                   alignItems: 'center', 
@@ -887,7 +895,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                   fontWeight: '750' 
                 }}>
                   <ShieldCheck size={14} strokeWidth={2.4} /> Official Agent
-                </span>
+                </span> */}
               </div>
 
               {/* Info Badges Strip */}
@@ -975,7 +983,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               <Edit size={14} /> <span>Edit Agent Details</span>
             </button>
 
-            <button 
+            {/* <button 
               className="btn-secondary" 
               onClick={() => {
                 setActiveSection('Wallet');
@@ -996,7 +1004,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               }}
             >
               <CreditCard size={14} color="#0284c7" /> <span>View Wallet</span>
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -2136,6 +2144,27 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                           >
                             <Download size={13} />
                             <span>Download Slip</span>
+                          </button>
+                          <button
+                            onClick={() => handleViewReceipt(comm.reference_id)}
+                            className="btn-primary"
+                            title="View / Download Payment Receipt"
+                            style={{
+                              padding: '6px 10px',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              borderRadius: '8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              color: '#fff',
+                              background: '#0284c7',
+                              border: 'none',
+                              boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)'
+                            }}
+                          >
+                            <Receipt size={13} />
+                            <span>Receipt</span>
                           </button>
                           <button
                             onClick={() => handleViewSlip(comm.reference_id)}

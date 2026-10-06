@@ -34,12 +34,14 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
   const [pendingPaymentCount, setPendingPaymentCount] = useState(0);
 
   useEffect(() => {
+    let isSubscribed = true;
     const fetchCounts = async () => {
       try {
         const [agentRes, paymentRes] = await Promise.all([
           apiRequest('/api/admin/agent-requests'),
           apiRequest('/api/admin/payment-submissions')
         ]);
+        if (!isSubscribed) return;
         if (agentRes && agentRes.s === 1 && Array.isArray(agentRes.r)) {
           setPendingRequestsCount(agentRes.r.filter(r => r.type !== 'payment').length);
         }
@@ -51,8 +53,14 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
         console.error('Failed to fetch sidebar counts', e);
       }
     };
+
     fetchCounts();
-  }, [pathname]);
+    const interval = setInterval(fetchCounts, 45000);
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [pathname.includes('request') ? pathname : '']);
 
   const handleLogout = () => {
     clearAuth();

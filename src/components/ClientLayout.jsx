@@ -44,26 +44,36 @@ export default function ClientLayout({ children }) {
         return;
       }
       
-      // Second pass: strict backend validation
-      try {
-        const res = await apiRequest('/api/user/get-details', { skipToast: true });
-        if (res?.r?.user_details?.role_id !== 1) {
-          clearAuth();
-          showToast('Server validation failed: Admin access only.', 'error');
-          setIsAuthenticated(false);
-          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+      // Second pass: strict backend validation (cached for 5 minutes for performance)
+      const now = Date.now();
+      const lastCheck = typeof window !== 'undefined' ? Number(sessionStorage.getItem('last_admin_role_check') || 0) : 0;
+      if (now - lastCheck > 300000) {
+        try {
+          const res = await apiRequest('/api/user/get-details', { skipToast: true });
+          if (res?.r?.user_details?.role_id !== 1) {
+            clearAuth();
+            showToast('Server validation failed: Admin access only.', 'error');
+            setIsAuthenticated(false);
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+            return;
           }
-          return;
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('last_admin_role_check', String(now));
+          }
+        } catch (e) {
+          if (e?.message === 'Unauthorized' || e?.message === 'Forbidden') {
+            clearAuth();
+            setIsAuthenticated(false);
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
+            return;
+          }
+          // On network glitch or temporary backend delay, keep local auth intact
+          console.warn('Admin background role validation temporarily unavailable:', e?.message || e);
         }
-      } catch (e) {
-        // Direct redirect on any API failure
-        clearAuth();
-        setIsAuthenticated(false);
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
-        return;
       }
 
       setIsAuthenticated(true);

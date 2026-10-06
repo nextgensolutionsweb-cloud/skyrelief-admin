@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Wallet, CheckCircle, Clock, Search, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { ArrowLeft, Wallet, CheckCircle, Clock, Search, Download, FileSpreadsheet, Printer, Receipt } from 'lucide-react';
 import { apiRequest, showToast, formatCurrency } from '@/lib/api';
 import * as XLSX from 'xlsx';
 
@@ -208,6 +208,26 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
     }
   };
 
+  const handleDownloadPaymentReceipt = (dueId) => {
+    try {
+      const apikey = localStorage.getItem('sky_apikey') || localStorage.getItem('apikey');
+      const token = localStorage.getItem('sky_token') || localStorage.getItem('token');
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
+      
+      showToast('Opening receipt...', 'success');
+      
+      const url = `${baseUrl}/api/payment/payment-receipt/${dueId}?apikey=${apikey}&token=${token}`;
+      const printWindow = window.open(url, "_blank");
+      
+      if (!printWindow) {
+        showToast('Please allow popups to view the receipt', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to open receipt', 'error');
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -235,6 +255,11 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
   }
 
   const sStatus = campaignStatusStyle[summary.status] || { bg: '#f1f5f9', color: '#475569', label: summary.status || 'Unknown' };
+  const isDeathCase = summary?.plan_name && (
+    summary.plan_name.toLowerCase().includes('सुरक्षा') ||
+    summary.plan_name.toLowerCase().includes('suraksha') ||
+    summary.plan_name.toLowerCase().includes('death')
+  );
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', paddingBottom: '60px' }}>
@@ -290,7 +315,9 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>Per Marriage Amount</span>
+                <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>
+                  {isDeathCase ? 'Per Death Amount' : 'Per Marriage Amount'}
+                </span>
                 <span style={{ fontSize: '0.9rem', color: '#0f172a', fontWeight: '700' }}>
                   {summary.per_marriage_amount ? formatCurrency(summary.per_marriage_amount) : (summary.age_amount_rules ? 'Age-wise' : '-')}
                 </span>
@@ -363,11 +390,15 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
           
         </div>
 
-        {/* Selected Married Members Table */}
+        {/* Selected Married / Deceased Members Table */}
         <div className="card" style={{ padding: '0', overflow: 'hidden', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9', background: '#fafcff' }}>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>Selected Married Members</h2>
-            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>Members whose marriages triggered this collection.</p>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+              {isDeathCase ? 'Selected Deceased / Beneficiary Members' : 'Selected Married Members'}
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '2px 0 0 0' }}>
+              {isDeathCase ? 'Members whose death claims triggered this collection.' : 'Members whose marriages triggered this collection.'}
+            </p>
           </div>
           <div className="premium-table-container" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '850px' }}>
@@ -377,9 +408,9 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Member Name</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Phone</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Plan Name</th>
-                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Marriage Date</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>{isDeathCase ? 'Death Date' : 'Marriage Date'}</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Amount Given</th>
-                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Invitation Card</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>{isDeathCase ? 'Death Certificate' : 'Invitation Card'}</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Photo Proof</th>
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' }}>Status</th>
                 </tr>
@@ -514,6 +545,16 @@ export default function CampaignDetailsPage({ params: paramsPromise }) {
                         {due.status === 1 ? formatDate(due.paid_at) : '-'}
                       </td>
                       <td className="no-print" style={{ padding: '12px 20px', textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {due.status === 1 && (
+                          <button
+                            onClick={() => handleDownloadPaymentReceipt(due.due_id || due.id)}
+                            className="btn-primary"
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px', background: '#0284c7', color: '#ffffff', border: 'none', boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)' }}
+                            title="View / Download Payment Receipt"
+                          >
+                            <Receipt size={12} /> Receipt
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDownloadMemberSlip(due.due_id || due.id)}
                           className="btn-secondary"
