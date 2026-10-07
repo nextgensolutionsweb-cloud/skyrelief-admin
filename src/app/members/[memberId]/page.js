@@ -13,6 +13,20 @@ const statusStyle = {
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.org';
 
+const calculateRunningAge = (dobString) => {
+  if (!dobString) return 0;
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  const d = today.getDate() - dob.getDate();
+  if (m > 0 || (m === 0 && d > 0)) {
+    age++;
+  }
+  return age >= 0 ? age : 0;
+};
+
 const calculateExactAge = (dobString) => {
   if (!dobString) return '';
   const dob = new Date(dobString);
@@ -1011,7 +1025,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Calculated Age</span>
                 <span style={{ color: '#0284c7', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>
-                  {calculateExactAge(member.dob || details.dob) || member.age || details.age || '—'}
+                  {calculateRunningAge(member.dob || details.dob) ? `${calculateRunningAge(member.dob || details.dob)} Yrs` : (member.age || details.age ? `${member.age || details.age} Yrs` : '—')} {calculateExactAge(member.dob || details.dob) ? `(${calculateExactAge(member.dob || details.dob)})` : ''}
                 </span>
               </div>
               <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
@@ -1845,7 +1859,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                   
                   let feesToSet = String(selected?.joining_fee || '');
                   if (selected && member) {
-                    const ageVal = parseInt(member.age, 10);
+                    const ageVal = calculateRunningAge(member.dob || details.dob) || parseInt(member.age || details.age, 10);
                     if (!isNaN(ageVal) && selected.age_rules && Array.isArray(selected.age_rules)) {
                       const matchedRule = selected.age_rules.find(r => ageVal >= r.min_age && ageVal <= r.max_age && r.status === 1);
                       if (matchedRule && matchedRule.joining_fee !== undefined && matchedRule.joining_fee !== null) {

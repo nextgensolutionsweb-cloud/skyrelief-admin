@@ -13,6 +13,20 @@ const statusStyle = {
 
 const avatarColors = ['#0ea5e9', '#22c55e', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
 
+const calculateRunningAge = (dobString) => {
+  if (!dobString) return 0;
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return 0;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  const d = today.getDate() - dob.getDate();
+  if (m > 0 || (m === 0 && d > 0)) {
+    age++;
+  }
+  return age >= 0 ? age : 0;
+};
+
 const calculateExactAge = (dobString) => {
   if (!dobString) return '';
   const dob = new Date(dobString);
@@ -1060,7 +1074,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
             <div style={{ minWidth: 0, flex: 1 }}>
               <span style={{ fontSize: '0.68rem', color: '#6b21a8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Demographics</span>
               <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#6d28d9', display: 'block', marginTop: '2px' }}>
-                {agent.gender || '—'} • {calculateExactAge(agent.dob) || (agent.age ? `${agent.age} Yrs` : '—')}
+                {agent.gender || '—'} • {calculateRunningAge(agent.dob) ? `${calculateRunningAge(agent.dob)} Yrs` : (agent.age ? `${agent.age} Yrs` : '—')}
               </span>
             </div>
           </div>
@@ -1109,7 +1123,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
               <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
                 <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Calculated Age</span>
                 <span style={{ color: '#0284c7', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>
-                  {calculateExactAge(agent.dob) || (agent.age ? `${agent.age} Yrs` : '—')}
+                  {calculateRunningAge(agent.dob) ? `${calculateRunningAge(agent.dob)} Yrs` : (agent.age ? `${agent.age} Yrs` : '—')} {calculateExactAge(agent.dob) ? `(${calculateExactAge(agent.dob)})` : ''}
                 </span>
               </div>
               <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>

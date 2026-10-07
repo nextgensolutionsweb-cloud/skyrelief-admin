@@ -43,27 +43,80 @@ export default function SettingsPage() {
   const [rotation, setRotation] = useState(0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  // Bank QR State
-  const [upiId, setUpiId] = useState('skyrelief@sbi');
-  const [bankName, setBankName] = useState('State Bank of India');
+  // Bank QR & UPI State
+  const [upiId, setUpiId] = useState('');
+  const [payeeName, setPayeeName] = useState('');
+  const [bankName, setBankName] = useState('');
   const [defaultAmount, setDefaultAmount] = useState('1000');
-  const [generatedQrUrl, setGeneratedQrUrl] = useState('https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=skyrelief@sbi%26pn=SkyRelief%26am=1000%26cu=INR');
+  const [generatedQrUrl, setGeneratedQrUrl] = useState('');
   const [savingQr, setSavingQr] = useState(false);
+  const [loadingBankSettings, setLoadingBankSettings] = useState(false);
 
-  const handleGenerateQr = (e) => {
+  // Fetch Bank & UPI Settings from backend
+  async function loadBankSettings() {
+    setLoadingBankSettings(true);
+    try {
+      const res = await apiRequest('/api/admin/agent-requests/bank-settings');
+      if (res && res.s === 1 && res.r) {
+        const u = res.r.bank_upi_id || '';
+        const p = res.r.payee_name || '';
+        const b = res.r.bank_name || '';
+        const d = res.r.default_amount || '1000';
+        setUpiId(u);
+        setPayeeName(p);
+        setBankName(b);
+        setDefaultAmount(d);
+        if (u) {
+          const cleanAmount = (d || '1000').replace(/[^0-9.]/g, '') || '1000';
+          const pName = p || b || 'SkyRelief Foundation';
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(u)}%26pn=${encodeURIComponent(pName)}%26am=${cleanAmount}%26cu=INR`;
+          setGeneratedQrUrl(qrUrl);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load bank settings:', err);
+    } finally {
+      setLoadingBankSettings(false);
+    }
+  }
+
+  const handleSaveBankSettings = async (e) => {
     e.preventDefault();
-    if (!upiId) {
-      showToast('Please enter a valid UPI ID', 'error');
+    if (!upiId || !upiId.trim()) {
+      showToast('Please enter a valid Bank UPI ID (e.g. yourname@upi / 9876543210@paytm)', 'error');
       return;
     }
     setSavingQr(true);
-    const cleanAmount = defaultAmount.replace(/[^0-9.]/g, '') || '1000';
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(upiId)}%26pn=SkyRelief%26am=${cleanAmount}%26cu=INR`;
-    setGeneratedQrUrl(qrUrl);
-    setTimeout(() => {
+    try {
+      const cleanAmount = defaultAmount.replace(/[^0-9.]/g, '') || '1000';
+      const cleanUpi = upiId.trim();
+      const cleanPayee = payeeName.trim() || bankName.trim() || 'SkyRelief Foundation';
+      const cleanBankName = bankName.trim() || 'Bank UPI';
+
+      const res = await apiRequest('/api/admin/agent-requests/bank-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bank_upi_id: cleanUpi,
+          payee_name: cleanPayee,
+          bank_name: cleanBankName,
+          default_amount: cleanAmount
+        })
+      });
+
+      if (res && res.s === 1) {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(cleanUpi)}%26pn=${encodeURIComponent(cleanPayee)}%26am=${cleanAmount}%26cu=INR`;
+        setGeneratedQrUrl(qrUrl);
+        showToast('UPI Payment Settings saved! Mobile app (Flutter) will now collect all payments on this UPI ID.', 'success');
+      } else {
+        showToast(res?.m || 'Failed to save UPI settings', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Error saving UPI settings', 'error');
+    } finally {
       setSavingQr(false);
-      showToast('Bank QR Code generated & saved successfully!', 'success');
-    }, 600);
+    }
   };
 
   // Fetch profile details
@@ -96,6 +149,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadProfile();
+    loadBankSettings();
   }, []);
 
   const handleFileChange = (e) => {
@@ -701,47 +755,71 @@ export default function SettingsPage() {
               {savingSignature ? 'Saving...' : 'Save Signature'}
             </button>
           </form>
-        {/* CARD 4: Bank QR Code & UPI Settings */}
+        {/* CARD 4: UPI Payment Settings */}
         <div className="premium-card" style={{ padding: '32px' }}>
-          <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--text-dark)', marginBottom: '8px' }}>
-            🏦 Bank QR Code & UPI Settings
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--text-dark)', margin: 0 }}>
+              ⚡ Mobile App UPI Payment Settings
+            </h3>
+            {loadingBankSettings && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Loading...</span>
+            )}
+          </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>
-            Configure Admin Bank UPI ID & QR Code for agent collections & direct member payment slips.
+            Configure the official UPI ID & Payee Name. When members or agents make payments from the Flutter mobile app, payments will be routed directly to this UPI ID.
           </p>
 
-          <form onSubmit={handleGenerateQr} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <form onSubmit={handleSaveBankSettings} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                Bank Name *
-              </label>
-              <input
-                type="text"
-                value={bankName}
-                onChange={e => setBankName(e.target.value)}
-                className="premium-input"
-                placeholder="State Bank of India"
-                required
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                Bank UPI ID *
+                UPI ID (Virtual Payment Address) *
               </label>
               <input
                 type="text"
                 value={upiId}
                 onChange={e => setUpiId(e.target.value)}
                 className="premium-input"
-                placeholder="skyrelief@sbi"
+                placeholder="e.g. 9876543210@ptsbi or skyrelief@icici"
                 required
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                All UPI apps (GPay, PhonePe, Paytm, BHIM) will send money to this ID.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Payee / Beneficiary Name *
+              </label>
+              <input
+                type="text"
+                value={payeeName}
+                onChange={e => setPayeeName(e.target.value)}
+                className="premium-input"
+                placeholder="e.g. SkyRelief Foundation"
+                required
+              />
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                Name displayed to user in PhonePe/GPay during payment.
+              </span>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
+                Bank / Display Name
+              </label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                className="premium-input"
+                placeholder="e.g. State Bank of India"
               />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>
-                Default Payment Amount (₹)
+                Default Preview Amount (₹)
               </label>
               <input
                 type="text"
@@ -752,20 +830,20 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button
                 type="submit"
                 disabled={savingQr}
                 className="btn-primary"
                 style={{
-                  height: '42px',
-                  width: '100%',
+                  height: '46px',
+                  padding: '0 32px',
                   fontWeight: '700',
                   background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
                 }}
               >
-                {savingQr ? 'Generating QR...' : '⚡ Generate & Save Bank QR Code'}
+                {savingQr ? 'Saving UPI Settings...' : '💾 Save UPI Payment Settings'}
               </button>
             </div>
           </form>
@@ -792,16 +870,16 @@ export default function SettingsPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'inline-block', padding: '4px 10px', background: '#dcfce7', color: '#15803d', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', marginBottom: '8px' }}>
-                  ✓ Active Bank QR Code
+                  ✓ Active Mobile App UPI Destination
                 </div>
                 <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', color: '#0f172a', fontWeight: '700' }}>
-                  {bankName}
+                  {payeeName || bankName || 'SkyRelief Foundation'}
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                  UPI: <strong>{upiId}</strong> • Amount: <strong>₹{defaultAmount}</strong>
+                  UPI ID: <strong style={{ color: '#2563eb' }}>{upiId}</strong> • Bank: <strong>{bankName || 'Standard UPI'}</strong>
                 </p>
                 <p style={{ margin: '6px 0 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-                  Agents and members can scan this QR code directly during payment collection.
+                  Members and agents paying via Flutter app will launch UPI or scan QR directly to this verified UPI address.
                 </p>
               </div>
             </div>
