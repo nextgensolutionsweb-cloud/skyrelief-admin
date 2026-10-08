@@ -3,12 +3,18 @@ import { useState, useEffect, useRef } from 'react';
 import { apiRequest, showToast, getAuth, setAuth } from '@/lib/api';
 
 import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Wrench, Power, AlertTriangle, CheckCircle2, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
+
+  // App Maintenance Mode States
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState('');
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
 
   // Editable fields
   const [fullName, setFullName] = useState('');
@@ -94,8 +100,54 @@ export default function SettingsPage() {
     }
   }
 
+  // Fetch App Maintenance Mode settings
+  async function loadMaintenanceSettings() {
+    setLoadingMaintenance(true);
+    try {
+      const res = await apiRequest('/api/admin/maintenance-settings');
+      if (res && res.s === 1 && res.r) {
+        setIsMaintenance(Boolean(res.r.is_maintenance));
+        setMaintenanceMessage(res.r.maintenance_message || '');
+      }
+    } catch (err) {
+      console.error('Failed to load maintenance settings:', err);
+    } finally {
+      setLoadingMaintenance(false);
+    }
+  }
+
+  const handleSaveMaintenance = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setSavingMaintenance(true);
+    try {
+      const res = await apiRequest('/api/admin/maintenance-settings', {
+        method: 'POST',
+        body: JSON.stringify({
+          is_maintenance: isMaintenance,
+          maintenance_message: maintenanceMessage.trim()
+        })
+      });
+      if (res && res.s === 1) {
+        showToast(
+          isMaintenance
+            ? 'Application successfully put UNDER MAINTENANCE!'
+            : 'Maintenance mode turned OFF. Mobile app is now LIVE!',
+          'success'
+        );
+      } else {
+        showToast(res?.m || 'Failed to update maintenance settings', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Error updating maintenance mode', 'error');
+    } finally {
+      setSavingMaintenance(false);
+    }
+  };
+
   useEffect(() => {
     loadProfile();
+    loadMaintenanceSettings();
   }, []);
 
   const handleFileChange = (e) => {
@@ -806,6 +858,269 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* CARD 5: App Maintenance Mode */}
+        <div className="premium-card" style={{ padding: '32px', border: isMaintenance ? '1.5px solid #fca5a5' : '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: isMaintenance ? '#fee2e2' : '#f0fdf4',
+                  color: isMaintenance ? '#dc2626' : '#16a34a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'var(--shadow-sm)'
+                }}>
+                  <Wrench size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontWeight: '800', fontSize: '1.2rem', color: 'var(--text-dark)', margin: 0 }}>
+                    Application Maintenance Mode
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Control mobile app access and broadcast downtime notices
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Status Pill Badge */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '9999px',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              background: isMaintenance ? '#fef2f2' : '#f0fdf4',
+              color: isMaintenance ? '#b91c1c' : '#15803d',
+              border: isMaintenance ? '1px solid #fecaca' : '1px solid #bbf7d0'
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: isMaintenance ? '#ef4444' : '#22c55e',
+                boxShadow: isMaintenance ? '0 0 0 3px rgba(239, 68, 68, 0.25)' : '0 0 0 3px rgba(34, 197, 94, 0.25)'
+              }} />
+              {isMaintenance ? 'UNDER MAINTENANCE' : 'APP IS LIVE & ACTIVE'}
+            </div>
+          </div>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '24px' }}>
+            When Maintenance Mode is <strong>ENABLED</strong>, the mobile application will block regular logins and navigation. Every user opening the app will be shown the Under Maintenance screen with your custom message.
+          </p>
+
+          <form onSubmit={handleSaveMaintenance} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            
+            {/* Toggle Switch */}
+            <div style={{
+              background: isMaintenance ? '#fff5f5' : '#f8fafc',
+              border: isMaintenance ? '1.5px solid #fed7d7' : '1.5px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '18px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  background: isMaintenance ? '#fee2e2' : '#e2e8f0',
+                  color: isMaintenance ? '#dc2626' : '#64748b'
+                }}>
+                  <Power size={22} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: '800', color: isMaintenance ? '#991b1b' : '#1e293b' }}>
+                    {isMaintenance ? 'Maintenance Mode is Activated' : 'Maintenance Mode is Disabled (App Live)'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: isMaintenance ? '#b91c1c' : '#64748b', marginTop: '2px' }}>
+                    {isMaintenance
+                      ? 'All mobile app users will be redirected to the maintenance screen upon launch.'
+                      : 'All mobile app features, logins, and registrations are operating normally.'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Styled Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setIsMaintenance(prev => !prev)}
+                style={{
+                  position: 'relative',
+                  width: '56px',
+                  height: '30px',
+                  borderRadius: '9999px',
+                  background: isMaintenance ? '#ef4444' : '#cbd5e1',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.25s ease',
+                  padding: '2px',
+                  flexShrink: 0
+                }}
+                aria-label="Toggle maintenance mode"
+              >
+                <div style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  transform: isMaintenance ? 'translateX(26px)' : 'translateX(0px)',
+                  transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px'
+                }}>
+                  {isMaintenance ? '⚠️' : '✓'}
+                </div>
+              </button>
+            </div>
+
+            {/* Custom Maintenance Message */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Custom Maintenance Message for App Users *
+                </label>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                  {maintenanceMessage.length} characters
+                </span>
+              </div>
+              <textarea
+                value={maintenanceMessage}
+                onChange={e => setMaintenanceMessage(e.target.value)}
+                rows={3}
+                className="premium-input"
+                placeholder="e.g., We are currently performing scheduled maintenance to upgrade our system. Please check back shortly. Sorry for any inconvenience!"
+                style={{
+                  width: '100%',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.5',
+                  padding: '12px 14px',
+                  borderRadius: '10px'
+                }}
+              />
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
+                💡 This message will be displayed prominently inside the app while maintenance is on.
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-muted)' }}>Quick Presets:</span>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceMessage('We are currently performing scheduled maintenance to improve our services. We will be back online shortly.')}
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🛠️ Standard Maintenance
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceMessage('हमारे सिस्टम का तकनीकी रखरखाव चल रहा है। कृपया कुछ समय बाद पुनः प्रयास करें। असुविधा के लिए खेद है।')}
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🇮🇳 Hindi Notice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMaintenanceMessage('We are currently performing a major database & security upgrade. Services will resume at 2:00 PM IST.')}
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚡ Server Upgrade
+                </button>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '6px' }}>
+              <button
+                type="submit"
+                disabled={savingMaintenance || loadingMaintenance}
+                className="btn-primary"
+                style={{
+                  padding: '11px 28px',
+                  fontWeight: '700',
+                  fontSize: '0.88rem',
+                  background: isMaintenance
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  boxShadow: isMaintenance
+                    ? '0 4px 14px rgba(239, 68, 68, 0.35)'
+                    : '0 4px 14px rgba(16, 185, 129, 0.35)',
+                  cursor: (savingMaintenance || loadingMaintenance) ? 'not-allowed' : 'pointer',
+                  opacity: (savingMaintenance || loadingMaintenance) ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                {savingMaintenance ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>Saving Settings...</span>
+                  </>
+                ) : isMaintenance ? (
+                  <>
+                    <AlertTriangle size={17} />
+                    <span>Activate Maintenance Mode Now</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={17} />
+                    <span>Save Settings (Keep App Live)</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={loadMaintenanceSettings}
+                disabled={loadingMaintenance || savingMaintenance}
+                className="btn-secondary"
+                style={{ padding: '11px 18px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Reload current maintenance status from server"
+              >
+                <RefreshCw size={14} />
+                <span>Refresh Status</span>
+              </button>
+            </div>
+          </form>
         </div>
 
       </div>

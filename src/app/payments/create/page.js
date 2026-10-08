@@ -43,6 +43,15 @@ export default function CreateCampaignPage() {
         const res = await apiRequest('/api/insurance/get-all?limit=100');
         if (res.s === 1 && Array.isArray(res.r)) {
           setPlans(res.r);
+          if (typeof window !== 'undefined') {
+            const urlPlan = new URLSearchParams(window.location.search).get('plan_id');
+            const savedPlan = localStorage.getItem('sky_selected_payment_plan');
+            if (urlPlan && res.r.some(p => String(p.id) === String(urlPlan))) {
+              setSelectedPlan(String(urlPlan));
+            } else if (savedPlan && res.r.some(p => String(p.id) === String(savedPlan))) {
+              setSelectedPlan(String(savedPlan));
+            }
+          }
         }
       } catch (err) {
         console.error(err);

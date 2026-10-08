@@ -52,11 +52,24 @@ const calculateAge = (dobString) => {
   if (isNaN(dob.getTime())) return '';
 
   const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  const d = today.getDate() - dob.getDate();
-  if (m > 0 || (m === 0 && d > 0)) {
-    age++;
+  const birthYear = dob.getFullYear();
+  const birthMonth = dob.getMonth();
+  const birthDate = dob.getDate();
+
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const currentDate = today.getDate();
+
+  const birthdayThisYear = new Date(currentYear, birthMonth, birthDate);
+  const todayDateOnly = new Date(currentYear, currentMonth, currentDate);
+
+  let age = 0;
+  if (todayDateOnly < birthdayThisYear) {
+    age = currentYear - birthYear;
+  } else if (todayDateOnly > birthdayThisYear) {
+    age = (currentYear - birthYear) + 1;
+  } else {
+    age = currentYear - birthYear;
   }
   return age >= 0 ? String(age) : '0';
 };

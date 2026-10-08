@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, UserCircle, ShieldCheck, Heart, Wallet,
-  FileText, Bell, CheckSquare, X, LogOut, Shield, ChevronRight
+  FileText, Bell, CheckSquare, X, LogOut, Shield, ChevronRight, Settings
 } from 'lucide-react';
 import { clearAuth, showToast, apiRequest } from '@/lib/api';
 import { ConfirmModal } from '@/components/Modal';
@@ -23,7 +23,8 @@ const securityNav = [
   { name: 'Agent Requests', path: '/admin/agent-requests', icon: FileText, badgeKey: 'agent' },
   { name: 'Login History', path: '/admin/requests', icon: FileText },
   { name: 'Active Sessions', path: '/admin/sessions', icon: LayoutDashboard },
-  { name: 'Notifications', path: '/admin/notifications', icon: Bell }
+  { name: 'Notifications', path: '/admin/notifications', icon: Bell },
+  { name: 'Settings & Maintenance', path: '/settings', icon: Settings }
 ];
 
 export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {

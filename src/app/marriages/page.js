@@ -883,7 +883,7 @@ export default function MarriagesListPage() {
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Insurance Plan</th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Agent</th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    {isDeathMode ? 'Death Date' : 'Marriage Date'}
+                    {isDeathMode ? 'Death / Donate Date' : 'Marriage / Donate Date'}
                   </th>
                   <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '0.72rem', fontWeight: '800', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                     {isDeathMode ? 'Death Proof / Photo' : 'Documents'}
@@ -901,6 +901,7 @@ export default function MarriagesListPage() {
                   const plan = getPlanName(item);
                   const agentName = getAgentName(item);
                   const eventDate = formatMarriageDate(isDeathMode ? (item.death_date || item.date) : (item.marriage_date || item.date));
+                  const donateDate = item.donate_date ? formatMarriageDate(item.donate_date) : null;
                   const statusInfo = isDeathMode 
                     ? (deathStatusStyle[item.status] || { bg: '#dcfce7', color: '#15803d', label: 'Settled' })
                     : (statusStyle[item.status] || { bg: '#f1f5f9', color: '#475569', label: item.status || 'Pending' });
@@ -929,9 +930,18 @@ export default function MarriagesListPage() {
                         {agentName}
                       </td>
 
-                      {/* Event Date */}
-                      <td style={{ padding: '14px 16px', fontSize: '0.82rem', color: '#64748b', fontWeight: '600' }}>
-                        {eventDate}
+                      {/* Event Date & Donate Date */}
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: '700' }}>
+                          <span style={{ color: '#64748b', fontSize: '0.72rem', marginRight: '4px' }}>{isDeathMode ? 'निधन:' : 'विवाह:'}</span>
+                          {eventDate}
+                        </div>
+                        {donateDate && (
+                          <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: '700', marginTop: '3px' }}>
+                            <span style={{ color: '#10b981', fontSize: '0.7rem', marginRight: '4px' }}>दान/प्रदान:</span>
+                            {donateDate}
+                          </div>
+                        )}
                       </td>
 
                       {/* Document Link */}

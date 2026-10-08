@@ -37,6 +37,7 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
   // Settlement Modal States
   const [settleOpen, setSettleOpen] = useState(false);
   const [settleAmount, setSettleAmount] = useState('25000');
+  const [settleDonateDate, setSettleDonateDate] = useState(new Date().toISOString().split('T')[0]);
   const [settleNotes, setSettleNotes] = useState('');
   const [settlePhoto, setSettlePhoto] = useState(null);
   const [settlePhotoPreview, setSettlePhotoPreview] = useState('');
@@ -81,6 +82,9 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
       if (res && res.s === 1 && res.r) {
         setMarriage(res.r);
         setSettleAmount(res.r.amount_given || res.r.amount || (isDeath ? '50000' : '25000'));
+        if (res.r.donate_date) {
+          setSettleDonateDate(String(res.r.donate_date).split('T')[0]);
+        }
       } else {
         showToast(res?.m || 'Failed to fetch details.', 'error');
       }
@@ -115,6 +119,9 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
     const formData = new FormData();
     formData.append('id', marriageId);
     formData.append('amount_given', settleAmount);
+    if (settleDonateDate) {
+      formData.append('donate_date', settleDonateDate);
+    }
     if (settleNotes) {
       formData.append('notes', settleNotes);
     }
@@ -375,6 +382,12 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>{isDeathCase ? 'Death Date:' : 'Marriage Date:'}</span>
                 <span style={{ color: '#0f172a', fontWeight: '700' }}>{getMarriageDate(marriage)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
+                <span style={{ color: '#64748b', fontWeight: '600' }}>{isDeathCase ? 'सहायता प्रदान तिथि (Donate Date):' : 'सहयोग प्रदान तिथि (Donate Date):'}</span>
+                <span style={{ color: marriage?.donate_date ? '#059669' : '#94a3b8', fontWeight: '700' }}>
+                  {marriage?.donate_date ? String(marriage.donate_date).split('T')[0] : 'N/A (Pending)'}
+                </span>
               </div>
               {/* <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '6px' }}>
                 <span style={{ color: '#64748b', fontWeight: '600' }}>Status:</span>
@@ -702,6 +715,20 @@ export default function MarriageDetailPage({ params: paramsPromise }) {
                   className="premium-input"
                   style={{ width: '100%' }}
                   placeholder="25000"
+                />
+              </div>
+
+              {/* Donate Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>
+                  {isDeathCase ? 'सहायता प्रदान तिथि (Donate Date - कब पैसा दिया)' : 'सहयोग प्रदान तिथि (Donate Date - कब पैसा दिया)'}
+                </label>
+                <input
+                  type="date"
+                  value={settleDonateDate}
+                  onChange={e => setSettleDonateDate(e.target.value)}
+                  className="premium-input"
+                  style={{ width: '100%' }}
                 />
               </div>
 

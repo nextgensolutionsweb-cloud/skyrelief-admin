@@ -45,10 +45,48 @@ export default function PaymentCampaignsListPage() {
   const [loadingAgentDetails, setLoadingAgentDetails] = useState(false);
   const [agentModalOpen, setAgentModalOpen] = useState(false);
 
+  // Filter helper to determine death plans
+  const isDeathPlan = (p) => p && (Number(p.plan_type) === 2 || String(p.name).toLowerCase().includes('सुरक्षा') || String(p.name).toLowerCase().includes('suraksha') || String(p.name).toLowerCase().includes('death'));
+
+  // Active plans grouped
+  const activePlans = plans.filter(p => p.status !== -1 && String(p.status) !== '-1');
+  const marriagePlans = activePlans.filter(p => !isDeathPlan(p));
+  const deathPlans = activePlans.filter(p => isDeathPlan(p));
+
+  const selectedPlanObj = plans.find(p => String(p.id) === String(selectedPlan));
+  const isDeathMode = isDeathPlan(selectedPlanObj);
+
+  // Sync selected plan with localStorage and URL query
+  const updateUrlAndStorage = (planId) => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (planId && planId !== 'all') {
+        localStorage.setItem('sky_selected_payment_plan', String(planId));
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('plan_id') !== String(planId)) {
+          url.searchParams.set('plan_id', String(planId));
+          window.history.replaceState(null, '', url.pathname + url.search);
+        }
+      } else {
+        localStorage.setItem('sky_selected_payment_plan', 'all');
+        const url = new URL(window.location.href);
+        url.searchParams.delete('plan_id');
+        window.history.replaceState(null, '', url.pathname + url.search);
+      }
+    } catch (e) {
+      // Ignore URL/history exceptions
+    }
+  };
+
   // Fetch Dashboard
   const fetchDashboard = async () => {
+    setLoadingDash(true);
     try {
-      const res = await apiRequest('/api/payment/dashboard/admin');
+      let endpoint = '/api/payment/dashboard/admin';
+      if (selectedPlan && selectedPlan !== 'all') {
+        endpoint += `?plan_id=${selectedPlan}`;
+      }
+      const res = await apiRequest(endpoint);
       if (res.s === 1 && res.r) {
         setDash(res.r);
       }
@@ -64,7 +102,31 @@ export default function PaymentCampaignsListPage() {
     try {
       const res = await apiRequest('/api/insurance/get-all?limit=100');
       if (res.s === 1 && Array.isArray(res.r)) {
-        setPlans(res.r);
+        const active = res.r.filter(p => p.status !== -1 && String(p.status) !== '-1');
+        setPlans(active);
+
+        let target = '';
+        if (typeof window !== 'undefined') {
+          const urlPlan = new URLSearchParams(window.location.search).get('plan_id');
+          const savedPlan = localStorage.getItem('sky_selected_payment_plan');
+          if (urlPlan && (urlPlan === 'all' || active.some(p => String(p.id) === String(urlPlan)))) {
+            target = String(urlPlan);
+          } else if (savedPlan && (savedPlan === 'all' || active.some(p => String(p.id) === String(savedPlan)))) {
+            target = String(savedPlan);
+          }
+        }
+        if (!target && selectedPlan && (selectedPlan === 'all' || active.some(p => String(p.id) === String(selectedPlan)))) {
+          target = String(selectedPlan);
+        }
+        if (!target) {
+          const firstMarriage = active.find(p => !isDeathPlan(p));
+          target = firstMarriage ? String(firstMarriage.id) : (active[0] ? String(active[0].id) : 'all');
+        }
+        if (target) {
+          setSelectedPlan(String(target));
+          setAgentPlan(target === 'all' ? '' : String(target));
+          updateUrlAndStorage(target);
+        }
       }
     } catch (err) {
       console.error('Error fetching plans for filter:', err);
@@ -80,7 +142,7 @@ export default function PaymentCampaignsListPage() {
       if (search.trim()) {
         endpoint += `&search=${encodeURIComponent(search.trim())}`;
       }
-      if (selectedPlan) {
+      if (selectedPlan && selectedPlan !== 'all') {
         endpoint += `&plan_id=${selectedPlan}`;
       }
       if (statusFilter !== 'All') {
@@ -116,7 +178,8 @@ export default function PaymentCampaignsListPage() {
     try {
       let endpoint = `/api/payment/agent-collection-summary?limit=50`;
       if (agentSearch.trim()) endpoint += `&search=${encodeURIComponent(agentSearch.trim())}`;
-      if (agentPlan) endpoint += `&plan_id=${agentPlan}`;
+      const effectivePlan = agentPlan !== '' ? agentPlan : (selectedPlan !== 'all' ? selectedPlan : '');
+      if (effectivePlan) endpoint += `&plan_id=${effectivePlan}`;
       
       const res = await apiRequest(endpoint);
       if (res.s === 1 && res.r) {
@@ -148,22 +211,20 @@ export default function PaymentCampaignsListPage() {
   };
 
   useEffect(() => {
-    fetchDashboard();
     fetchPlans();
-    fetchAgentDashboard(true);
   }, []);
 
   useEffect(() => {
+    fetchDashboard();
     fetchCampaigns();
   }, [page, search, statusFilter, selectedPlan]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Do not show full loading spinner to prevent input from losing focus
       fetchAgentDashboard(false);
     }, 400);
     return () => clearTimeout(timer);
-  }, [agentSearch, agentPlan]);
+  }, [agentSearch, agentPlan, selectedPlan]);
 
   // Actions
   const handleSearchChange = (e) => {
@@ -172,8 +233,11 @@ export default function PaymentCampaignsListPage() {
   };
 
   const handlePlanChange = (e) => {
-    setSelectedPlan(e.target.value);
+    const val = e.target.value;
+    setSelectedPlan(val);
+    setAgentPlan(val === 'all' ? '' : val);
     setPage(1);
+    updateUrlAndStorage(val);
   };
 
   const handleStatusChange = (status) => {
@@ -248,15 +312,91 @@ export default function PaymentCampaignsListPage() {
 
   return (
     <div style={{ maxWidth: '1350px', margin: '0 auto', paddingBottom: '40px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em', margin: 0 }}>Payment Campaigns & Dashboard</h1>
-          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px', margin: 0 }}>Monitor collections, track agent performance, and manage payment campaigns</p>
+      {/* Top Bar Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+          <h1 style={{ fontSize: '1.45rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.02em', margin: 0, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {selectedPlanObj ? `${selectedPlanObj.name} Campaigns` : 'Payment Campaigns & Dashboard'}
+            {selectedPlanObj && (
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: '700',
+                padding: '2px 9px',
+                borderRadius: '9999px',
+                background: isDeathMode ? '#fef3c7' : '#eff6ff',
+                color: isDeathMode ? '#b45309' : '#1d4ed8',
+                border: isDeathMode ? '1px solid #fde68a' : '1px solid #bfdbfe'
+              }}>
+                {isDeathMode ? 'Death Relief Plan' : 'Marriage Plan'}
+              </span>
+            )}
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px', margin: 0 }}>
+            {selectedPlanObj 
+              ? (isDeathMode ? 'Death relief collection & campaign management' : 'Marriage assistance collection & campaign management')
+              : 'Monitor collections, track agent performance, and manage payment campaigns'}
+          </p>
         </div>
-        <button className="btn-primary" onClick={() => router.push('/payments/create')} style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={16} strokeWidth={2.5} /> Create Campaign
-        </button>
+
+        {/* Top Header Insurance Plan Selector & Create Campaign */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: '#ffffff',
+            padding: '0 14px',
+            height: '42px',
+            borderRadius: '12px',
+            border: isDeathMode ? '1.5px solid #f59e0b' : selectedPlanObj ? '1.5px solid #3b82f6' : '1.5px solid #cbd5e1',
+            boxShadow: isDeathMode ? '0 2px 10px rgba(245, 158, 11, 0.12)' : selectedPlanObj ? '0 2px 10px rgba(59, 130, 246, 0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
+            transition: 'all 0.2s ease',
+            boxSizing: 'border-box'
+          }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: '800', color: isDeathMode ? '#b45309' : selectedPlanObj ? '#1d4ed8' : '#475569', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
+              {isDeathMode ? '🛡️ Insurance:' : '💍 Insurance:'}
+            </span>
+            <select
+              value={selectedPlan}
+              onChange={handlePlanChange}
+              style={{
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: '0.86rem',
+                fontWeight: '700',
+                color: '#0f172a',
+                cursor: 'pointer',
+                maxWidth: '260px',
+                paddingRight: '6px'
+              }}
+            >
+              <option value="all">🌐 All Insurance Plans</option>
+              {marriagePlans.length > 0 && (
+                <optgroup label="💍 Marriage Assistance">
+                  {marriagePlans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </optgroup>
+              )}
+              {deathPlans.length > 0 && (
+                <optgroup label="🛡️ Death Assistance">
+                  {deathPlans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+
+          <button 
+            className="btn-primary" 
+            onClick={() => router.push(selectedPlan && selectedPlan !== 'all' ? `/payments/create?plan_id=${selectedPlan}` : '/payments/create')} 
+            style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '8px', height: '42px', boxSizing: 'border-box' }}
+          >
+            <Plus size={16} strokeWidth={2.5} /> Create Campaign
+          </button>
+        </div>
       </div>
 
       {/* DASHBOARD SECTION */}
@@ -372,7 +512,9 @@ export default function PaymentCampaignsListPage() {
 
             {/* Plan Wise Bar Chart */}
             <div className="card" style={{ padding: '20px', background: '#fff', borderRadius: '14px', border: '1px solid #e2e8f0', minHeight: '300px' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', margin: 0 }}>Plan Wise Collection</h3>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#0f172a', marginBottom: '16px', margin: 0 }}>
+                {selectedPlanObj ? `${selectedPlanObj.name} Collection` : 'Plan Wise Collection'}
+              </h3>
               <div style={{ width: '100%', height: 230, marginTop: '12px' }}>
                 <ResponsiveContainer>
                   <BarChart data={planWiseData}>
@@ -455,7 +597,16 @@ export default function PaymentCampaignsListPage() {
                   style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
                 >
                   <option value="">All Plans</option>
-                  {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {marriagePlans.length > 0 && (
+                    <optgroup label="💍 Marriage Assistance">
+                      {marriagePlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </optgroup>
+                  )}
+                  {deathPlans.length > 0 && (
+                    <optgroup label="🛡️ Death Assistance">
+                      {deathPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               </div>
             </div>
@@ -571,8 +722,17 @@ export default function PaymentCampaignsListPage() {
                 onChange={handlePlanChange}
                 style={{ padding: '6px 12px', borderRadius: '8px', border: '1.5px solid #e8edf2', fontSize: '0.8rem', color: '#334155', background: '#f8fafc', outline: 'none', fontFamily: 'inherit' }}
               >
-                <option value="">All Plans</option>
-                {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                <option value="all">All Plans</option>
+                {marriagePlans.length > 0 && (
+                  <optgroup label="💍 Marriage Assistance">
+                    {marriagePlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                )}
+                {deathPlans.length > 0 && (
+                  <optgroup label="🛡️ Death Assistance">
+                    {deathPlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </optgroup>
+                )}
               </select>
             </div>
           </div>

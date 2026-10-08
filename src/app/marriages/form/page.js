@@ -11,6 +11,7 @@ const emptyForm = {
   plan_id: '',
   member_id: '',
   marriage_date: '',
+  donate_date: '',
   status: '1',
   notes: '',
 };
@@ -154,11 +155,13 @@ export default function MarriageFormPage() {
         const planId = String(details.plan_id || details.insurance_plan?.id || '');
         const savedMemberId = String(details.member_id || details.member?.id || '');
         const rawDate = details.death_date || details.marriage_date || details.date || '';
+        const rawDonateDate = details.donate_date || '';
 
         setForm({
           plan_id: planId,
           member_id: savedMemberId,
           marriage_date: rawDate ? String(rawDate).split('T')[0] : '',
+          donate_date: rawDonateDate ? String(rawDonateDate).split('T')[0] : '',
           notes: details.notes || '',
           amount_given: details.amount_given || '',
           status: String(details.status || 1),
@@ -315,6 +318,9 @@ export default function MarriageFormPage() {
     formData.append('member_id', form.member_id);
     formData.append('death_date', form.marriage_date);
     formData.append('marriage_date', form.marriage_date);
+    if (form.donate_date) {
+      formData.append('donate_date', form.donate_date);
+    }
     formData.append('notes', form.notes);
     formData.append('status', form.status || '1');
 
@@ -370,6 +376,9 @@ export default function MarriageFormPage() {
           status: form.status || '1',
           notes: form.notes
         };
+        if (form.donate_date) {
+          payload.donate_date = form.donate_date;
+        }
         if (form.amount_given) {
           payload.amount_given = form.amount_given;
         }
@@ -574,11 +583,11 @@ export default function MarriageFormPage() {
                   )}
                 </div>
 
-                {/* Event Date, Status & Amount */}
-                <div style={{ display: 'grid', gridTemplateColumns: (isDeathMode || form.status === '2') ? 'repeat(auto-fit, minmax(180px, 1fr))' : '1fr 1fr', gap: '16px' }}>
+                {/* Event Date & Donate Date */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                      {isDeathMode ? 'Death Date' : 'Marriage Date'} <span style={{ color: '#ef4444' }}>*</span>
+                      {isDeathMode ? 'Death Date (निधन तिथि)' : 'Marriage Date (विवाह तिथि)'} <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
                       type="date"
@@ -590,6 +599,22 @@ export default function MarriageFormPage() {
                     />
                   </div>
 
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                      {isDeathMode ? 'Donate Date (कब पैसा दिया / सहायता प्रदान तिथि)' : 'Donate Date (कब पैसा दिया / सहयोग प्रदान तिथि)'}
+                    </label>
+                    <input
+                      type="date"
+                      value={form.donate_date}
+                      onChange={e => handleInputChange('donate_date', e.target.value)}
+                      className="premium-input"
+                      style={{ width: '100%', height: '42px', padding: '0 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Case Status & Amount */}
+                <div style={{ display: 'grid', gridTemplateColumns: (isDeathMode || form.status === '2' || form.amount_given) ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                       Case Status <span style={{ color: '#ef4444' }}>*</span>
@@ -614,7 +639,7 @@ export default function MarriageFormPage() {
                     </select>
                   </div>
 
-                  {(isDeathMode || form.status === '2') && (
+                  {(isDeathMode || form.status === '2' || form.amount_given) && (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
                         Amount Given (₹) {isDeathMode && <span style={{ color: '#ef4444' }}>*</span>}
@@ -741,10 +766,14 @@ export default function MarriageFormPage() {
                   <span>{isDeathMode ? 'Death Date:' : 'Marriage Date:'}</span>
                   <strong style={{ color: '#0f172a' }}>{form.marriage_date || 'Not set'}</strong>
                 </div>
-                {isDeathMode && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Donate Date (कब दिया):</span>
+                  <strong style={{ color: form.donate_date ? '#059669' : '#0f172a' }}>{form.donate_date || 'Not set'}</strong>
+                </div>
+                {form.amount_given && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>Amount Given:</span>
-                    <strong style={{ color: '#0f172a' }}>{form.amount_given ? `₹${Number(form.amount_given).toLocaleString('en-IN')}` : 'Not set'}</strong>
+                    <strong style={{ color: '#0f172a' }}>{`₹${Number(form.amount_given).toLocaleString('en-IN')}`}</strong>
                   </div>
                 )}
               </div>
