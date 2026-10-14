@@ -502,3 +502,51 @@ span[style*="borderRadius: 9999px"], span[style*="border-radius: 9999px"] {
 @media (max-width: 1024px) { .grid-r-split-14-1 { grid-template-columns: 1fr; } }
 .grid-r-split-16-1 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
 @media (max-width: 1024px) { .grid-r-split-16-1 { grid-template-columns: 1fr; } }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .no-print,
+  .sidebar-aside,
+  .sidebar-overlay,
+  header,
+  .app-container > aside,
+  .report-modal-backdrop {
+    display: none !important;
+  }
+  .report-modal-overlay {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+  .main-content-wrapper,
+  .content-area {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  #printable-deposit-report {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0 !important;
+  }
+}

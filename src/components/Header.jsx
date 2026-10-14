@@ -1,13 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, Bell, ChevronDown, LogOut, User, Menu, ChevronLeft, ChevronRight, Clock, Calendar } from 'lucide-react';
+import { Search, Bell, ChevronDown, LogOut, User, Menu, ChevronLeft, ChevronRight, Clock, Calendar, Wallet, ArrowLeft, Landmark } from 'lucide-react';
 import { getAuth, clearAuth, showToast } from '@/lib/api';
 import { ConfirmModal } from '@/components/Modal';
 
 export default function Header({ onMenuClick, onDesktopToggle, isDesktopClosed }) {
   const router = useRouter();
   const pathname = usePathname();
+  const isCollectionPortal = pathname.startsWith('/more-collection');
   const [user, setUser] = useState({ full_name: 'System Admin', email: 'admin@skyrelief.com' });
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -95,6 +96,10 @@ export default function Header({ onMenuClick, onDesktopToggle, isDesktopClosed }
 
   // Compute readable page title from current pathname
   const getPageLabel = (path) => {
+    if (path === '/more-collection') return 'Collections Dashboard';
+    if (path.startsWith('/more-collection/campaigns')) return 'Payment Campaigns';
+    if (path.startsWith('/more-collection/payment-requests')) return 'Payment Requests & QR';
+    if (path.startsWith('/more-collection/agents')) return 'Agents & Wallets';
     if (path === '/') return 'Dashboard Overview';
     if (path.startsWith('/insurance')) return 'Insurance Management';
     if (path.startsWith('/agents')) return 'Agents Directory';
@@ -273,8 +278,42 @@ export default function Header({ onMenuClick, onDesktopToggle, isDesktopClosed }
           )}
         </button>
 
-        {/* Divider */}
-        <div className="header-divider" style={{ width: '1px', height: '22px', background: '#e2e8f0', margin: '0 2px' }} />
+        {/* Portal Switcher Button - Shown ONLY in Collections Portal to return to Main ERP */}
+        {isCollectionPortal && (
+          <>
+            <div className="header-divider" style={{ width: '1px', height: '22px', background: '#e2e8f0', margin: '0 2px' }} />
+            <button
+              onClick={() => router.push('/')}
+              title="Switch back to Main Admin ERP"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '12px',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                color: '#1d4ed8',
+                background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                border: '1.5px solid #93c5fd',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.12)',
+                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(37, 99, 235, 0.2)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.12)';
+              }}
+            >
+              <ArrowLeft size={14} strokeWidth={2.5} />
+              <span style={{ letterSpacing: '-0.01em' }}>Main ERP</span>
+            </button>
+          </>
+        )}
 
         {/* User Dropdown Pill */}
         <div style={{ position: 'relative' }}>
@@ -425,6 +464,41 @@ export default function Header({ onMenuClick, onDesktopToggle, isDesktopClosed }
                 <User size={16} strokeWidth={2} />
                 <span>Profile Settings</span>
               </button>
+
+              {isCollectionPortal && (
+                <>
+                  <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      router.push('/');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.83rem',
+                      fontWeight: '600',
+                      color: '#2563eb',
+                      transition: 'all 0.15s ease',
+                      border: 'none',
+                      background: 'transparent'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = '#eff6ff';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <ArrowLeft size={16} strokeWidth={2} />
+                    <span>Return to Main ERP</span>
+                  </button>
+                </>
+              )}
 
               <div style={{ height: '1px', background: '#f1f5f9', margin: '4px 0' }} />
 

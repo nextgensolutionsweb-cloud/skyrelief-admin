@@ -2,10 +2,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiRequest, showToast, getAuth, setAuth } from '@/lib/api';
 
-import { useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Wrench, Power, AlertTriangle, CheckCircle2, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff, Wrench, Power, AlertTriangle, CheckCircle2, ShieldAlert, Sparkles, RefreshCw, Layers } from 'lucide-react';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [updatingProfile, setUpdatingProfile] = useState(false);
@@ -481,11 +482,45 @@ export default function SettingsPage() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '40px' }}>
       {/* Page Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 className="page-title">Admin Profile</h1>
           <p className="page-subtitle">Manage your personal information and security settings</p>
         </div>
+        <button
+          type="button"
+          onClick={() => router.push('/more-collection')}
+          title="Modules"
+          aria-label="Modules"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            background: '#ffffff',
+            color: '#94a3b8',
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = '#2563eb';
+            e.currentTarget.style.borderColor = '#bfdbfe';
+            e.currentTarget.style.background = '#eff6ff';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = '#94a3b8';
+            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.background = '#ffffff';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          <Layers size={18} strokeWidth={1.8} />
+        </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

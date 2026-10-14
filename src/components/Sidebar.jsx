@@ -4,19 +4,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, UserCircle, ShieldCheck, Heart, Wallet,
-  FileText, Bell, CheckSquare, X, LogOut, Shield, ChevronRight, Settings
+  FileText, Bell, CheckSquare, X, LogOut, Shield, ChevronRight, Settings, ArrowLeft, Landmark, DollarSign
 } from 'lucide-react';
 import { clearAuth, showToast, apiRequest } from '@/lib/api';
 import { ConfirmModal } from '@/components/Modal';
 
+// Main ERP Navigation (Non-financial operational modules)
 const mainNav = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Insurance Management', path: '/insurance', icon: ShieldCheck },
   { name: 'Agents', path: '/agents', icon: UserCircle },
   { name: 'Members', path: '/members', icon: Users },
   { name: 'Programs', path: '/marriages', icon: Heart },
-  { name: 'Payment Campaigns', path: '/payments', icon: Wallet },
-  { name: 'Payment Requests & QR', path: '/admin/payment-requests', icon: CheckSquare, badgeKey: 'payment' },
 ];
 
 const securityNav = [
@@ -25,6 +24,14 @@ const securityNav = [
   { name: 'Active Sessions', path: '/admin/sessions', icon: LayoutDashboard },
   { name: 'Notifications', path: '/admin/notifications', icon: Bell },
   { name: 'Settings & Maintenance', path: '/settings', icon: Settings }
+];
+
+// Dedicated Collection & Payments Portal Navigation
+const collectionNav = [
+  { name: 'Overview', path: '/more-collection', icon: LayoutDashboard },
+  { name: 'Payment Campaigns', path: '/more-collection/campaigns', icon: Wallet },
+  { name: 'Payment Requests & QR', path: '/more-collection/payment-requests', icon: CheckSquare, badgeKey: 'payment' },
+  { name: 'Agents & Wallets', path: '/more-collection/agents', icon: UserCircle },
 ];
 
 export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
@@ -147,6 +154,8 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
     );
   };
 
+  const isCollectionPortal = pathname.startsWith('/more-collection');
+
   return (
     <aside className={`sidebar-aside ${isOpen ? 'sidebar-open' : ''} ${isDesktopClosed ? 'desktop-closed' : ''}`}>
 
@@ -171,19 +180,30 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(14, 165, 233, 0.18)',
-            border: '1.5px solid #e0f2fe',
+            boxShadow: isCollectionPortal ? '0 4px 14px rgba(16, 185, 129, 0.2)' : '0 4px 14px rgba(14, 165, 233, 0.18)',
+            border: isCollectionPortal ? '1.5px solid #a7f3d0' : '1.5px solid #e0f2fe',
             overflow: 'hidden'
           }}>
             <img src="/skyrelief-logo.jpeg" alt="SkyRelief Icon" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
-            <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: '1.02rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', gap: '6px' }}>
               SkyRelief
-              <span style={{ fontSize: '0.62rem', fontWeight: '800', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', color: 'white', padding: '1px 6px', borderRadius: '6px', textTransform: 'uppercase' }}>ERP</span>
+              <span style={{
+                fontSize: '0.6rem',
+                fontWeight: '800',
+                background: isCollectionPortal ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+                color: 'white',
+                padding: '2px 6px',
+                borderRadius: '6px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}>
+                {isCollectionPortal ? 'COLLECTIONS' : 'ERP'}
+              </span>
             </div>
-            <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: '600', letterSpacing: '0.04em', marginTop: '1px' }}>
-              Foundation Admin
+            <div style={{ fontSize: '0.68rem', color: isCollectionPortal ? '#059669' : '#64748b', fontWeight: '600', letterSpacing: '0.04em', marginTop: '1px' }}>
+              {isCollectionPortal ? 'Payments & Payouts' : 'Foundation Admin'}
             </div>
           </div>
         </div>
@@ -207,21 +227,61 @@ export default function Sidebar({ isOpen, onClose, isDesktopClosed }) {
       {/* Navigation Body */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px 12px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         
-        {/* Main Section */}
-        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '12px' }}>
-          Main Navigation
-        </div>
-        <ul style={{ marginBottom: '20px', listStyle: 'none', padding: 0 }}>
-          {mainNav.map(renderNavItem)}
-        </ul>
+        {isCollectionPortal ? (
+          <>
+            {/* Dedicated Collection & Payments Section */}
+            <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#059669', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '12px' }}>
+              Collections & Payments
+            </div>
+            <ul style={{ marginBottom: '20px', listStyle: 'none', padding: 0 }}>
+              {collectionNav.map(renderNavItem)}
+            </ul>
 
-        {/* Security Section */}
-        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '12px' }}>
-          Security & Audit
-        </div>
-        <ul style={{ marginBottom: '16px', listStyle: 'none', padding: 0 }}>
-          {securityNav.map(renderNavItem)}
-        </ul>
+            {/* Quick Switcher back to Main ERP */}
+            <div style={{ marginTop: '24px', padding: '0 4px' }}>
+              <Link
+                href="/"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  fontSize: '0.82rem',
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  color: '#2563eb',
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(37, 99, 235, 0.08)'
+                }}
+              >
+                <ArrowLeft size={16} />
+                <span>Return to Main ERP</span>
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Main Section */}
+            <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '12px' }}>
+              Main Navigation
+            </div>
+            <ul style={{ marginBottom: '20px', listStyle: 'none', padding: 0 }}>
+              {mainNav.map(renderNavItem)}
+            </ul>
+
+            {/* Security Section */}
+            <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '12px' }}>
+              Security & Audit
+            </div>
+            <ul style={{ marginBottom: '16px', listStyle: 'none', padding: 0 }}>
+              {securityNav.map(renderNavItem)}
+            </ul>
+          </>
+        )}
 
       </nav>
 

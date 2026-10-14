@@ -16,6 +16,20 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/payments',
+        destination: '/more-collection/campaigns',
+        permanent: false,
+      },
+      {
+        source: '/admin/payment-requests',
+        destination: '/more-collection/payment-requests',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

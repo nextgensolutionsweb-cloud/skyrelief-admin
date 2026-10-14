@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { ArrowLeft, Phone, MapPin, Mail, Edit, Info, FileText, ShieldAlert, CreditCard, Calendar, Eye, Pencil, Trash2, EyeOff, Copy, Key, Download, Users, Shield, ShieldCheck, CheckCircle2, User, Heart, Sparkles, Receipt } from 'lucide-react';
 import { apiRequest, showToast } from '@/lib/api';
 
@@ -12,6 +12,19 @@ const statusStyle = {
 };
 
 const avatarColors = ['#0ea5e9', '#22c55e', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6'];
+
+const calculateAge = (dobString) => {
+  if (!dobString) return '';
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return '';
+  const today = new Date();
+  let years = today.getFullYear() - dob.getFullYear();
+  let m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    years--;
+  }
+  return years > 0 ? `${years} Yrs` : '';
+};
 
 const calculateExactAge = (dobString) => {
   if (!dobString) return '';
@@ -56,6 +69,8 @@ const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.skyrelief.o
 
 export default function AgentDetailsPage({ params: paramsPromise }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isCollectionMode = pathname.startsWith('/more-collection');
   const params = use(paramsPromise);
   const { agentId } = params;
 
@@ -128,7 +143,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
   const [exportPlanId, setExportPlanId] = useState('ALL');
 
   // Tabs & Summary
-  const [activeSection, setActiveSection] = useState('Members'); // 'Members' or 'Wallet'
+  const [activeSection, setActiveSection] = useState(isCollectionMode ? 'Wallet' : 'Members'); // 'Members' or 'Wallet'
   const [activeTab, setActiveTab] = useState('All');
   const [selectedPlan, setSelectedPlan] = useState('');
   const [counts, setCounts] = useState({ all: 0, active: 0, suspended: 0, upcoming: 0, married: 0 });
@@ -764,12 +779,12 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       {/* Top Bar: Back Button + Breadcrumbs */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
         <button 
-          onClick={() => router.back()} 
+          onClick={() => isCollectionMode ? router.push('/more-collection/agents') : router.push('/agents')} 
           className="btn-secondary"
           style={{ padding: '7px 16px', borderRadius: '9999px', fontSize: '0.82rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '7px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
         >
           <ArrowLeft size={16} strokeWidth={2.5} /> 
-          <span>Back to Agents Directory</span>
+          <span>{isCollectionMode ? 'Back to Collection Agents' : 'Back to Agents Directory'}</span>
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1029,29 +1044,33 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
             </div>
           </div>
 
-          <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <CheckCircle2 size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Joining Fee Comm.</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#15803d', display: 'block', marginTop: '2px' }}>
-                {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '0%'}
-              </span>
-            </div>
-          </div>
+          {isCollectionMode && (
+            <>
+              <div style={{ background: '#f0fdf4', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CheckCircle2 size={18} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Joining Fee Comm.</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#15803d', display: 'block', marginTop: '2px' }}>
+                    {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '0%'}
+                  </span>
+                </div>
+              </div>
 
-          <div style={{ background: '#eff6ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Shield size={18} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '0.68rem', color: '#1e40af', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Installment Comm.</span>
-              <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1d4ed8', display: 'block', marginTop: '2px' }}>
-                {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '0%'}
-              </span>
-            </div>
-          </div>
+              <div style={{ background: '#eff6ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Shield size={18} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{ fontSize: '0.68rem', color: '#1e40af', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Installment Comm.</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1d4ed8', display: 'block', marginTop: '2px' }}>
+                    {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '0%'}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           <div style={{ background: '#faf5ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#f3e8ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1137,18 +1156,22 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
                 <span style={{ color: '#64748b', fontWeight: '600', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Occupation</span>
                 <span style={{ color: '#0f172a', fontWeight: '750', fontSize: '0.92rem', marginTop: '2px', display: 'block' }}>{agent.occupation || '—'}</span>
               </div>
-              <div style={{ background: '#f0fdf4', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dcfce7' }}>
-                <span style={{ color: '#166534', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Joining Fee Comm.</span>
-                <span style={{ color: '#15803d', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
-                  {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '—'}
-                </span>
-              </div>
-              <div style={{ background: '#eff6ff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dbeafe' }}>
-                <span style={{ color: '#1e40af', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Installment Comm.</span>
-                <span style={{ color: '#1d4ed8', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
-                  {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '—'}
-                </span>
-              </div>
+              {isCollectionMode && (
+                <>
+                  <div style={{ background: '#f0fdf4', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dcfce7' }}>
+                    <span style={{ color: '#166534', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Joining Fee Comm.</span>
+                    <span style={{ color: '#15803d', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
+                      {agent.joining_fee_commission_percent !== null && agent.joining_fee_commission_percent !== undefined ? `${agent.joining_fee_commission_percent}%` : '—'}
+                    </span>
+                  </div>
+                  <div style={{ background: '#eff6ff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #dbeafe' }}>
+                    <span style={{ color: '#1e40af', fontWeight: '700', display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Installment Comm.</span>
+                    <span style={{ color: '#1d4ed8', fontWeight: '800', fontSize: '1rem', marginTop: '2px', display: 'block' }}>
+                      {agent.installment_commission_percent !== null && agent.installment_commission_percent !== undefined ? `${agent.installment_commission_percent}%` : '—'}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Government Aadhaar Highlight Box */}
@@ -1480,21 +1503,23 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
         <button 
           onClick={() => setActiveSection('Members')} 
-          className={activeSection === 'Members' ? 'btn-primary' : 'btn-secondary'}
+          className={(!isCollectionMode || activeSection === 'Members') ? 'btn-primary' : 'btn-secondary'}
           style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '700' }}
         >
           Members List
         </button>
-        <button 
-          onClick={() => setActiveSection('Wallet')} 
-          className={activeSection === 'Wallet' ? 'btn-primary' : 'btn-secondary'}
-          style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '700', background: activeSection === 'Wallet' ? '#10b981' : '' }}
-        >
-          Wallet & Commissions
-        </button>
+        {isCollectionMode && (
+          <button 
+            onClick={() => setActiveSection('Wallet')} 
+            className={activeSection === 'Wallet' ? 'btn-primary' : 'btn-secondary'}
+            style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '700', background: activeSection === 'Wallet' ? '#10b981' : '' }}
+          >
+            Wallet & Commissions
+          </button>
+        )}
       </div>
 
-      {activeSection === 'Members' && (
+      {(!isCollectionMode || activeSection === 'Members') && (
       <div className="card" style={{ marginTop: '16px', padding: '0', overflow: 'visible' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
@@ -1666,7 +1691,7 @@ export default function AgentDetailsPage({ params: paramsPromise }) {
       )}
 
       {/* Wallet Section */}
-      {activeSection === 'Wallet' && (
+      {isCollectionMode && activeSection === 'Wallet' && (
       <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Wallet Tabs */}

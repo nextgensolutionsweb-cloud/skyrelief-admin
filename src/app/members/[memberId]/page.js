@@ -125,6 +125,22 @@ export default function MemberProfilePage({ params: paramsPromise }) {
   const [memberInsurances, setMemberInsurances] = useState([]);
   const [confirmRevoke, setConfirmRevoke] = useState(null);
 
+  const openAssignModal = () => {
+    setAssignForm({
+      plan_id: '',
+      agent_id: member?.agent_id || '',
+      joining_amount: '',
+      collected_amount: '',
+      remaining_amount: '',
+      joining_date: new Date().toISOString().split('T')[0],
+      guardian_name: member?.guardian || member?.guardian_name || '',
+      guardian_relation: member?.relation || member?.guardian_relation || '',
+      guardian_aadhar_no: member?.guardian_aadhaar_number || member?.guardian_aadhar_no || '',
+      guardian_aadhar_photo: null
+    });
+    setShowAssignModal(true);
+  };
+
   // Complete Tenure Modal States
   const [completeItem, setCompleteItem] = useState(null);
   const [completeNotes, setCompleteNotes] = useState('');
@@ -835,7 +851,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button 
               className="btn-primary" 
-              onClick={() => setShowAssignModal(true)} 
+              onClick={openAssignModal} 
               style={{ 
                 padding: '9px 18px', 
                 fontSize: '0.82rem', 
@@ -1387,7 +1403,7 @@ export default function MemberProfilePage({ params: paramsPromise }) {
               <div style={{ fontSize: '0.95rem', fontWeight: '750', color: '#0f172a' }}>No Active Insurance Plan</div>
               <p style={{ fontSize: '0.78rem', margin: '4px 0 16px 0', color: '#64748b' }}>This member does not have any active insurance coverage assigned yet.</p>
               <button 
-                onClick={() => setShowAssignModal(true)}
+                onClick={openAssignModal}
                 className="btn-primary" 
                 style={{ padding: '8px 18px', fontSize: '0.8rem', borderRadius: '8px' }}
               >
@@ -1923,6 +1939,11 @@ export default function MemberProfilePage({ params: paramsPromise }) {
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#64748b', marginBottom: '6px' }}>Aadhaar Photo</label>
                     <input type="file" accept="image/*" onChange={e => setAssignForm({ ...assignForm, guardian_aadhar_photo: e.target.files[0] })} className="premium-input" style={{ width: '100%', padding: '6px' }} />
+                    {Boolean(member?.guardian_aadhaar_img || member?.guardian_aadhar_photo) && (
+                      <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'block', marginTop: '4px' }}>
+                        ✓ Existing photo on file (Upload only if changing)
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
